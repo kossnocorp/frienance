@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "outDir": "build",
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2018"
+  },
+  "compileOnSave": true,
+  "include": ["functions"]
+}

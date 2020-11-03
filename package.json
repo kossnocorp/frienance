@@ -1,0 +1,21 @@
+{
+  "name": "frenance",
+  "private": true,
+  "main": "build/index.js",
+  "engines": {
+    "node": "10"
+  },
+  "dependencies": {
+    "firebase-admin": "^9.3.0",
+    "firebase-functions": "^3.11.0",
+    "node-fetch": "^2.6.1",
+    "typesaurus": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.5.7",
+    "firebase-tools": "^8.14.1",
+    "ngrok": "^3.3.0",
+    "telegram-typings": "^4.0.0-beta",
+    "typescript": "^4.0.5"
+  }
+}

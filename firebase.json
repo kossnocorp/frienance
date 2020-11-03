@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "source": "."
+  },
+  "emulators": {
+    "functions": {
+      "port": 6001
+    },
+    "ui": {
+      "enabled": true,
+      "port": 6999
+    }
+  }
+}
