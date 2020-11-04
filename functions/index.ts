@@ -3,6 +3,7 @@ import * as functions from "firebase-functions";
 import { Update } from "telegram-typings";
 import { get, ref, set } from "typesaurus";
 import trackExpense from "./commands/expense";
+import joinMembers from "./commands/join";
 import registerMember from "./commands/register";
 import { Ledger, LedgerActionType, ledgers } from "./db";
 import base64 from "./_lib/base64";
@@ -20,8 +21,7 @@ export const webhook = functions.https.onRequest(async (request, response) => {
   if (message?.text) {
     const telegramChatId = message.chat.id;
     const ledgerId = base64(telegramChatId);
-    const ledgerRef = ref(ledgers, ledgerId);
-    const ledger = await get(ledgerRef);
+    const ledger = await get(ledgers, ledgerId);
 
     let ledgerData: Ledger;
 
@@ -30,8 +30,8 @@ export const webhook = functions.https.onRequest(async (request, response) => {
         `Couldn't find the chat ledger, bootstraing an empty one (${ledgerId})`
       );
 
-      ledgerData = { telegramChatId, members: {}, history: [] };
-      await set(ledgerRef, ledgerData);
+      ledgerData = { telegramChatId, members: {}, joints: {}, history: [] };
+      await set(ledgers, ledgerId, ledgerData);
     } else {
       ledgerData = ledger.data;
     }
@@ -45,6 +45,11 @@ export const webhook = functions.https.onRequest(async (request, response) => {
       switch (command as LedgerActionType) {
         case "register": {
           registerMember({ telegramChatId, message, ledgerId, ledgerData });
+          break;
+        }
+
+        case "join": {
+          joinMembers({ telegramChatId, message, args, ledgerId, ledgerData });
           break;
         }
 

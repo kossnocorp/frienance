@@ -5,6 +5,7 @@ export const ledgers = collection<Ledger>("ledgers");
 export type Ledger = {
   telegramChatId: number;
   members: Record<string, Member>;
+  joints: Record<string, Joint>;
   history: LedgerAction[];
 };
 
@@ -16,7 +17,14 @@ export type Member = {
   since: Date;
 };
 
-export type LedgerAction = LedgerRegisterAction | LedgerExpense;
+export type Joint = {
+  memberIds: string[];
+};
+
+export type LedgerAction =
+  | LedgerRegisterAction
+  | LedgerExpenseAction
+  | LedgerJoinAction;
 
 export type LedgerActionType = LedgerAction["type"];
 
@@ -27,7 +35,7 @@ export type LedgerRegisterAction = {
   createdAt: Date;
 };
 
-export type LedgerExpense = {
+export type LedgerExpenseAction = {
   type: "expense";
   memberId: string;
   value: number;
@@ -36,6 +44,13 @@ export type LedgerExpense = {
   exchangeRate: ExchangeRate;
   createdAt: Date;
   comment?: string;
+};
+
+export type LedgerJoinAction = {
+  type: "join";
+  memberId: string;
+  joiningMemberId: string;
+  createdAt: Date;
 };
 
 export type ExchangeRate = {
