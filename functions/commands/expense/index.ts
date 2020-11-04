@@ -1,6 +1,6 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import { ledgers } from "../../db";
+import { LedgerExpenseAction, ledgers } from "../../db";
 import base64 from "../../_lib/base64";
 import { getExchangeRate } from "../../_lib/currency";
 import { sendMessage } from "../../_lib/telegram";
@@ -37,9 +37,9 @@ export default async function trackExpense({
       const exchangeRate = await getExchangeRate(currency);
       const valueUSD = exchangeRate.rate * val;
 
-      const action = {
+      const action: LedgerExpenseAction = {
         type: "expense",
-        userId: memberId,
+        memberId,
         value: val,
         currency,
         valueUSD,

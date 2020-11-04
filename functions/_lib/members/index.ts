@@ -8,6 +8,7 @@ export function fullName(message: Member) {
 }
 
 export function listMembers(members: Member[]) {
+  if (members.length === 1) return fullName(members[0]);
   return `${members
     .slice(0, members.length - 1)
     .map(fullName)

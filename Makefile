@@ -6,3 +6,9 @@ start:
 	@env GOOGLE_APPLICATION_CREDENTIALS=${CURDIR}/secrets/production/key.json \
 			CLOUD_RUNTIME_CONFIG="${CURDIR}/secrets/production/runtime.json" \
 			${BIN}/firebase emulators:start
+
+test:
+	@${BIN}/jest
+
+test-watch:
+	@${BIN}/jest --watch

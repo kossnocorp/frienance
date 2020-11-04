@@ -1,7 +1,8 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { Update } from "telegram-typings";
-import { get, ref, set } from "typesaurus";
+import { get, set } from "typesaurus";
+import calculateBalance from "./commands/balance";
 import trackExpense from "./commands/expense";
 import joinMembers from "./commands/join";
 import registerMember from "./commands/register";
@@ -9,6 +10,8 @@ import { Ledger, LedgerActionType, ledgers } from "./db";
 import base64 from "./_lib/base64";
 
 admin.initializeApp();
+
+type BotCommand = LedgerActionType & "balance";
 
 export const webhook = functions.https.onRequest(async (request, response) => {
   const telegramUpdate = request.body as Update;
@@ -42,21 +45,21 @@ export const webhook = functions.https.onRequest(async (request, response) => {
 
       console.debug(`Got a command (${command})`);
 
-      switch (command as LedgerActionType) {
-        case "register": {
+      switch (command as BotCommand) {
+        case "register":
           registerMember({ telegramChatId, message, ledgerId, ledgerData });
           break;
-        }
 
-        case "join": {
+        case "join":
           joinMembers({ telegramChatId, message, args, ledgerId, ledgerData });
           break;
-        }
 
-        case "expense": {
+        case "expense":
           trackExpense({ telegramChatId, message, args, ledgerId });
           break;
-        }
+
+        case "balance":
+          calculateBalance({ telegramChatId, message, ledgerId, ledgerData });
 
         default:
           console.debug(`Ignoring unknown command (${command})`);

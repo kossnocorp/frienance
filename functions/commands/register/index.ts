@@ -1,6 +1,6 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import { Ledger, ledgers } from "../../db";
+import { Ledger, LedgerRegisterAction, ledgers } from "../../db";
 import base64 from "../../_lib/base64";
 import { fullName } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
@@ -35,9 +35,9 @@ export default async function registerMember({
     };
 
     if (!(memberId in ledgerData.members)) {
-      const action = {
+      const action: LedgerRegisterAction = {
         type: "register",
-        userId: memberId,
+        memberId,
         member,
         createdAt: new Date(),
       };
