@@ -1,10 +1,14 @@
+import { collection } from "typesaurus";
+
+export const ledgers = collection<Ledger>("ledgers");
+
 export type Ledger = {
   telegramChatId: number;
-  users: Record<string, User>;
+  members: Record<string, Member>;
   history: LedgerAction[];
 };
 
-export type User = {
+export type Member = {
   telegramId: number;
   firstName: string;
   lastName?: string;
@@ -18,14 +22,14 @@ export type LedgerActionType = LedgerAction["type"];
 
 export type LedgerRegisterAction = {
   type: "register";
-  userId: string;
-  user: User;
+  memberId: string;
+  member: Member;
   createdAt: Date;
 };
 
 export type LedgerExpense = {
   type: "expense";
-  userId: string;
+  memberId: string;
   value: number;
   currency: string;
   valueUSD: number;
