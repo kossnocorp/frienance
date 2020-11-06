@@ -1,5 +1,9 @@
-import { calculateHistoryBalance, calculateLedgerState } from ".";
-import { LedgerExpenseAction, LedgerRegisterAction } from "../../db";
+import { biggestJoint, calculateHistoryBalance, calculateLedgerState } from ".";
+import {
+  LedgerExpenseAction,
+  LedgerJoinAction,
+  LedgerRegisterAction,
+} from "../../db";
 
 describe("Calculate balance command", () => {
   describe("calculateHistoryBalance", () => {
@@ -62,6 +66,55 @@ describe("Calculate balance command", () => {
         },
       ]);
     });
+
+    describe("joints", () => {
+      it("allows to join finances", () => {
+        console.log(
+          calculateHistoryBalance([
+            registerSasha,
+            registerNadi,
+            expense("nadi", 100),
+            expense("nadi", 100),
+            expense("sasha", 300),
+            registerTati,
+            join("sasha", "tati"),
+          ]).balance
+        );
+        expect(
+          calculateHistoryBalance([
+            registerSasha,
+            registerNadi,
+            expense("nadi", 100),
+            expense("nadi", 100),
+            expense("sasha", 300),
+            registerTati,
+            join("sasha", "tati"),
+          ]).balance
+        ).toEqual([
+          {
+            who: ["nadi"],
+            whom: ["sasha", "tati"],
+            value: 50,
+          },
+        ]);
+
+        expect(
+          calculateHistoryBalance([
+            registerSasha,
+            registerNadi,
+            expense("nadi", 100),
+            registerTati,
+            join("sasha", "tati"),
+          ]).balance
+        ).toEqual([
+          {
+            who: ["sasha", "tati"],
+            whom: ["nadi"],
+            value: 50,
+          },
+        ]);
+      });
+    });
   });
 
   describe("calculateLedgerState", () => {
@@ -80,6 +133,65 @@ describe("Calculate balance command", () => {
           { who: ["nadi"], whom: ["sasha"], value: 5 },
         ],
       });
+    });
+
+    it("supports joints", () => {
+      const result = calculateLedgerState([
+        registerSasha,
+        registerNadi,
+        expense("nadi", 100),
+        expense("sasha", 10),
+        registerTati,
+        join("sasha", "tati"),
+        expense("nadi", 90),
+      ]);
+      expect(result).toEqual({
+        members: { sasha, nadi, tati },
+        joints: [["sasha", "tati"]],
+        splits: [
+          { who: ["sasha"], whom: ["nadi"], value: 50 },
+          { who: ["nadi"], whom: ["sasha"], value: 5 },
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+        ],
+      });
+    });
+  });
+
+  describe("biggestJoint", () => {
+    it("find the joint that includes all the members from the given joint", () => {
+      expect(
+        biggestJoint(
+          [
+            ["a", "b"],
+            ["c", "d"],
+          ],
+          ["c"]
+        )
+      ).toEqual(["c", "d"]);
+    });
+
+    it("returns the given joint if none is found", () => {
+      expect(
+        biggestJoint(
+          [
+            ["a", "b"],
+            ["c", "d"],
+          ],
+          ["e"]
+        )
+      ).toEqual(["e"]);
+    });
+
+    it("returns the given joint if not all members are present", () => {
+      expect(
+        biggestJoint(
+          [
+            ["a", "b"],
+            ["c", "d"],
+          ],
+          ["a", "c"]
+        )
+      ).toEqual(["a", "c"]);
     });
   });
 });
@@ -112,6 +224,19 @@ var registerNadi: LedgerRegisterAction = {
   createdAt: new Date(),
 };
 
+var tati = {
+  telegramId: 789,
+  firstName: "Tati",
+  since: new Date(),
+};
+
+var registerTati: LedgerRegisterAction = {
+  type: "register",
+  memberId: "tati",
+  member: tati,
+  createdAt: new Date(),
+};
+
 function expense(memberId: string, value: number): LedgerExpenseAction {
   return {
     type: "expense",
@@ -124,6 +249,15 @@ function expense(memberId: string, value: number): LedgerExpenseAction {
       rate: 1,
       date: new Date(),
     },
+    createdAt: new Date(),
+  };
+}
+
+function join(memberId: string, joiningMemberId: string): LedgerJoinAction {
+  return {
+    type: "join",
+    memberId,
+    joiningMemberId,
     createdAt: new Date(),
   };
 }

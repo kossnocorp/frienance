@@ -49,8 +49,7 @@ export function calculateHistoryBalance(history: LedgerAction[]) {
     // First check if "whom" is in dept to repay it
     const whomDeptIndex = balance.findIndex(
       (s) =>
-        s.who.every((m) => split.whom.includes(m)) &&
-        split.who.every((m) => s.whom.includes(m))
+        jointIncludes(s.who, split.whom) && jointIncludes(s.whom, split.who)
     );
 
     if (whomDeptIndex !== -1) {
@@ -67,8 +66,8 @@ export function calculateHistoryBalance(history: LedgerAction[]) {
         const restValue = whomDept.value - split.value;
         if (restValue !== 0) {
           balance.push({
-            who: split.who,
-            whom: split.whom,
+            who: biggestJoint(joints, split.who),
+            whom: biggestJoint(joints, split.whom),
             value: Math.abs(restValue),
           });
         }
@@ -80,8 +79,7 @@ export function calculateHistoryBalance(history: LedgerAction[]) {
     // Now check if "who" is already in dept to sum up it
     const whoDeptIndex = balance.findIndex(
       (s) =>
-        s.who.every((m) => split.who.includes(m)) &&
-        split.whom.every((m) => s.whom.includes(m))
+        jointIncludes(s.who, split.who) && jointIncludes(s.whom, split.whom)
     );
 
     if (whoDeptIndex !== -1) {
@@ -91,7 +89,11 @@ export function calculateHistoryBalance(history: LedgerAction[]) {
     }
 
     // Nothing found in the final splits, add the split clone
-    balance.push({ ...split });
+    balance.push({
+      who: biggestJoint(joints, split.who),
+      whom: biggestJoint(joints, split.whom),
+      value: split.value,
+    });
   });
 
   return { members, joints, balance };
@@ -157,4 +159,12 @@ export function calculateLedgerState(history: LedgerAction[]) {
   });
 
   return { members, joints, splits };
+}
+
+export function biggestJoint(joints: string[][], joint: string[]) {
+  return joints.find((j) => jointIncludes(j, joint)) || joint;
+}
+
+function jointIncludes(joint: string[], jointToCheckForInclude: string[]) {
+  return jointToCheckForInclude.every((m) => joint.includes(m));
 }
