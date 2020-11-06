@@ -4,6 +4,7 @@ import { Update } from "telegram-typings";
 import { get, set } from "typesaurus";
 import calculateBalance from "./commands/balance";
 import trackExpense from "./commands/expense";
+import giveMoney from "./commands/give";
 import joinMembers from "./commands/join";
 import registerMember from "./commands/register";
 import separateMembers from "./commands/separate";
@@ -12,7 +13,7 @@ import base64 from "./_lib/base64";
 
 admin.initializeApp();
 
-type BotCommand = LedgerActionType & "balance";
+type BotCommand = LedgerActionType | "balance";
 
 export const webhook = functions.https.onRequest(async (request, response) => {
   const telegramUpdate = request.body as Update;
@@ -48,15 +49,26 @@ export const webhook = functions.https.onRequest(async (request, response) => {
 
       switch (command as BotCommand) {
         case "register":
-          registerMember({ telegramChatId, message, ledgerId, ledgerData });
+          await registerMember({
+            telegramChatId,
+            message,
+            ledgerId,
+            ledgerData,
+          });
           break;
 
         case "join":
-          joinMembers({ telegramChatId, message, args, ledgerId, ledgerData });
+          await joinMembers({
+            telegramChatId,
+            message,
+            args,
+            ledgerId,
+            ledgerData,
+          });
           break;
 
         case "separate":
-          separateMembers({
+          await separateMembers({
             telegramChatId,
             message,
             args,
@@ -66,11 +78,27 @@ export const webhook = functions.https.onRequest(async (request, response) => {
           break;
 
         case "expense":
-          trackExpense({ telegramChatId, message, args, ledgerId });
+          await trackExpense({ telegramChatId, message, args, ledgerId });
+          break;
+
+        case "give":
+          await giveMoney({
+            telegramChatId,
+            message,
+            args,
+            ledgerId,
+            ledgerData,
+          });
           break;
 
         case "balance":
-          calculateBalance({ telegramChatId, message, ledgerId, ledgerData });
+          await calculateBalance({
+            telegramChatId,
+            message,
+            ledgerId,
+            ledgerData,
+          });
+          break;
 
         default:
           console.debug(`Ignoring unknown command (${command})`);
