@@ -12,3 +12,10 @@ test:
 
 test-watch:
 	@${BIN}/jest --watch
+
+deploy:
+	@cp firebase.json build
+	@cp .firebaserc build
+	@cp package.json build
+	@cp package-lock.json build
+	@cd build && ${BIN}/firebase deploy

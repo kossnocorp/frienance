@@ -1,7 +1,7 @@
 {
   "name": "frenance",
   "private": true,
-  "main": "build/index.js",
+  "main": "index.js",
   "engines": {
     "node": "10"
   },
