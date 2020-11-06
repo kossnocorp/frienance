@@ -2,9 +2,9 @@ import { uniq } from "js-fns";
 import { nanoid } from "nanoid";
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import { Joint, Ledger, LedgerJoinAction, ledgers, Member } from "../../db";
+import { Joint, Ledger, LedgerJoinAction, ledgers } from "../../db";
 import base64 from "../../_lib/base64";
-import { listMembers } from "../../_lib/members";
+import { findMemberByHandle, listMembers } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
 
 export default async function joinMembers({
@@ -26,20 +26,11 @@ export default async function joinMembers({
     const telegramUserId = from.id;
     const memberId = base64(telegramUserId);
 
-    let joiningMemberEntry: [memberId: string, member: Member] | undefined;
-    const usernameCaptures = args.match(/^@(.+)/);
-    if (usernameCaptures) {
-      const username = usernameCaptures[1];
-      joiningMemberEntry = Object.entries(ledgerData.members).find(
-        ([_, member]) => member.username === username
-      );
-    } else {
-      const entity = message.entities?.find((e) => e.type === "text_mention");
-      const id = entity?.user?.id;
-      joiningMemberEntry = Object.entries(ledgerData.members).find(
-        ([_, member]) => member.telegramId === id
-      );
-    }
+    const joiningMemberEntry = findMemberByHandle({
+      ledgerData,
+      message,
+      handle: args,
+    });
 
     if (joiningMemberEntry) {
       const [joiningMemberId, joinginMember] = joiningMemberEntry;
@@ -108,8 +99,6 @@ export default async function joinMembers({
       });
     }
   } else {
-    console.debug(
-      "Ignoring the register command as I can't find the sender user"
-    );
+    console.debug("Ignoring the join command as I can't find the sender user");
   }
 }

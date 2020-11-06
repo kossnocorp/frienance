@@ -24,7 +24,8 @@ export type Joint = {
 export type LedgerAction =
   | LedgerRegisterAction
   | LedgerExpenseAction
-  | LedgerJoinAction;
+  | LedgerJoinAction
+  | LedgerSeparateAction;
 
 export type LedgerActionType = LedgerAction["type"];
 
@@ -50,6 +51,13 @@ export type LedgerJoinAction = {
   type: "join";
   memberId: string;
   joiningMemberId: string;
+  createdAt: Date;
+};
+
+export type LedgerSeparateAction = {
+  type: "separate";
+  memberId: string;
+  separatingMemberId: string;
   createdAt: Date;
 };
 

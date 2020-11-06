@@ -6,6 +6,7 @@ import calculateBalance from "./commands/balance";
 import trackExpense from "./commands/expense";
 import joinMembers from "./commands/join";
 import registerMember from "./commands/register";
+import separateMembers from "./commands/separate";
 import { Ledger, LedgerActionType, ledgers } from "./db";
 import base64 from "./_lib/base64";
 
@@ -52,6 +53,16 @@ export const webhook = functions.https.onRequest(async (request, response) => {
 
         case "join":
           joinMembers({ telegramChatId, message, args, ledgerId, ledgerData });
+          break;
+
+        case "separate":
+          separateMembers({
+            telegramChatId,
+            message,
+            args,
+            ledgerId,
+            ledgerData,
+          });
           break;
 
         case "expense":
