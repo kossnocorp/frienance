@@ -1,8 +1,14 @@
-import { biggestJoint, calculateHistoryBalance, calculateLedgerState } from ".";
+import {
+  biggestJoint,
+  calculateHistoryBalance,
+  calculateLedgerState,
+  splitOutdatedJoints,
+} from ".";
 import {
   LedgerExpenseAction,
   LedgerJoinAction,
   LedgerRegisterAction,
+  LedgerSeparateAction,
 } from "../../db";
 
 describe("Calculate balance command", () => {
@@ -69,17 +75,6 @@ describe("Calculate balance command", () => {
 
     describe("joints", () => {
       it("allows to join finances", () => {
-        console.log(
-          calculateHistoryBalance([
-            registerSasha,
-            registerNadi,
-            expense("nadi", 100),
-            expense("nadi", 100),
-            expense("sasha", 300),
-            registerTati,
-            join("sasha", "tati"),
-          ]).balance
-        );
         expect(
           calculateHistoryBalance([
             registerSasha,
@@ -114,6 +109,104 @@ describe("Calculate balance command", () => {
           },
         ]);
       });
+
+      it("splits expenses after separation", () => {
+        expect(
+          calculateHistoryBalance([
+            registerSasha,
+            registerNadi,
+            registerTati,
+            join("sasha", "tati"),
+            expense("nadi", 90),
+            expense("nadi", 90),
+            expense("sasha", 450),
+            separate("sasha", "tati"),
+          ]).balance
+        ).toEqual([
+          {
+            who: ["nadi"],
+            whom: ["sasha"],
+            value: 15,
+          },
+          {
+            who: ["nadi"],
+            whom: ["tati"],
+            value: 15,
+          },
+        ]);
+
+        expect(
+          calculateHistoryBalance([
+            registerSasha,
+            registerNadi,
+            registerTati,
+            join("sasha", "tati"),
+            expense("nadi", 90),
+            separate("sasha", "tati"),
+          ]).balance
+        ).toEqual([
+          {
+            who: ["sasha"],
+            whom: ["nadi"],
+            value: 30,
+          },
+          {
+            who: ["tati"],
+            whom: ["nadi"],
+            value: 30,
+          },
+        ]);
+      });
+
+      it("considers updated joints", () => {
+        expect(
+          calculateHistoryBalance([
+            registerSasha,
+            registerNadi,
+            registerTati,
+            join("sasha", "tati"),
+            expense("nadi", 90),
+            expense("nadi", 90),
+            expense("sasha", 450),
+            separate("sasha", "tati"),
+            registerEd,
+            join("sasha", "ed"),
+          ]).balance
+        ).toEqual([
+          {
+            who: ["nadi"],
+            whom: ["sasha", "ed"],
+            value: 15,
+          },
+          {
+            who: ["nadi"],
+            whom: ["tati"],
+            value: 15,
+          },
+        ]);
+
+        expect(
+          calculateHistoryBalance([
+            registerSasha,
+            registerNadi,
+            registerTati,
+            join("sasha", "tati"),
+            expense("nadi", 90),
+            separate("sasha", "tati"),
+          ]).balance
+        ).toEqual([
+          {
+            who: ["sasha"],
+            whom: ["nadi"],
+            value: 30,
+          },
+          {
+            who: ["tati"],
+            whom: ["nadi"],
+            value: 30,
+          },
+        ]);
+      });
     });
   });
 
@@ -136,16 +229,17 @@ describe("Calculate balance command", () => {
     });
 
     it("supports joints", () => {
-      const result = calculateLedgerState([
-        registerSasha,
-        registerNadi,
-        expense("nadi", 100),
-        expense("sasha", 10),
-        registerTati,
-        join("sasha", "tati"),
-        expense("nadi", 90),
-      ]);
-      expect(result).toEqual({
+      expect(
+        calculateLedgerState([
+          registerSasha,
+          registerNadi,
+          expense("nadi", 100),
+          expense("sasha", 10),
+          registerTati,
+          join("sasha", "tati"),
+          expense("nadi", 90),
+        ])
+      ).toEqual({
         members: { sasha, nadi, tati },
         joints: [["sasha", "tati"]],
         splits: [
@@ -154,6 +248,105 @@ describe("Calculate balance command", () => {
           { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
         ],
       });
+
+      expect(
+        calculateLedgerState([
+          registerSasha,
+          registerNadi,
+          registerTati,
+          join("sasha", "tati"),
+          expense("nadi", 90),
+          expense("nadi", 90),
+          expense("sasha", 450),
+        ])
+      ).toEqual({
+        members: { sasha, nadi, tati },
+        joints: [["sasha", "tati"]],
+        splits: [
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          { who: ["nadi"], whom: ["sasha", "tati"], value: 150 },
+        ],
+      });
+    });
+
+    it("process separate", () => {
+      const result = calculateLedgerState([
+        registerSasha,
+        registerNadi,
+        expense("nadi", 100),
+        expense("sasha", 10),
+        registerTati,
+        join("sasha", "tati"),
+        expense("nadi", 90),
+        separate("sasha", "tati"),
+        expense("nadi", 90),
+      ]);
+      expect(result).toEqual({
+        members: { sasha, nadi, tati },
+        joints: [],
+        splits: [
+          { who: ["sasha"], whom: ["nadi"], value: 50 },
+          { who: ["nadi"], whom: ["sasha"], value: 5 },
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          { who: ["sasha"], whom: ["nadi"], value: 30 },
+          { who: ["tati"], whom: ["nadi"], value: 30 },
+        ],
+      });
+    });
+  });
+
+  describe("splitOutdatedJoints", () => {
+    it("updates balance according to the latest joints state", () => {
+      expect(
+        splitOutdatedJoints({
+          joints: [],
+          splits: [{ who: ["tati", "sasha"], whom: ["nadi"], value: 30 }],
+        })
+      ).toEqual([
+        { who: ["tati"], whom: ["nadi"], value: 15 },
+        { who: ["sasha"], whom: ["nadi"], value: 15 },
+      ]);
+
+      expect(
+        splitOutdatedJoints({
+          joints: [],
+          splits: [{ who: ["nadi"], whom: ["tati", "sasha"], value: 30 }],
+        })
+      ).toEqual([
+        { who: ["nadi"], whom: ["tati"], value: 15 },
+        { who: ["nadi"], whom: ["sasha"], value: 15 },
+      ]);
+    });
+
+    it("preserves splits", () => {
+      expect(
+        splitOutdatedJoints({
+          joints: [],
+          splits: [
+            { who: ["sasha"], whom: ["lesha"], value: 40 },
+            { who: ["tati", "sasha"], whom: ["nadi"], value: 30 },
+          ],
+        })
+      ).toEqual([
+        { who: ["sasha"], whom: ["lesha"], value: 40 },
+        { who: ["tati"], whom: ["nadi"], value: 15 },
+        { who: ["sasha"], whom: ["nadi"], value: 15 },
+      ]);
+    });
+
+    it("supports multiple members", () => {
+      expect(
+        splitOutdatedJoints({
+          joints: [],
+          splits: [{ who: ["tati", "sasha"], whom: ["nadi", "ed"], value: 40 }],
+        })
+      ).toEqual([
+        { who: ["tati"], whom: ["nadi"], value: 10 },
+        { who: ["tati"], whom: ["ed"], value: 10 },
+        { who: ["sasha"], whom: ["nadi"], value: 10 },
+        { who: ["sasha"], whom: ["ed"], value: 10 },
+      ]);
     });
   });
 
@@ -237,6 +430,19 @@ var registerTati: LedgerRegisterAction = {
   createdAt: new Date(),
 };
 
+var ed = {
+  telegramId: 0,
+  firstName: "Ed",
+  since: new Date(),
+};
+
+var registerEd: LedgerRegisterAction = {
+  type: "register",
+  memberId: "ed",
+  member: ed,
+  createdAt: new Date(),
+};
+
 function expense(memberId: string, value: number): LedgerExpenseAction {
   return {
     type: "expense",
@@ -258,6 +464,18 @@ function join(memberId: string, joiningMemberId: string): LedgerJoinAction {
     type: "join",
     memberId,
     joiningMemberId,
+    createdAt: new Date(),
+  };
+}
+
+function separate(
+  memberId: string,
+  separatingMemberId: string
+): LedgerSeparateAction {
+  return {
+    type: "separate",
+    memberId,
+    separatingMemberId,
     createdAt: new Date(),
   };
 }

@@ -1,4 +1,4 @@
-import { uniq } from "js-fns";
+import { remove, uniq } from "js-fns";
 import { Message } from "telegram-typings";
 import { Ledger, LedgerAction, Member } from "../../db";
 import { listMembers } from "../../_lib/members";
@@ -45,7 +45,7 @@ export function calculateHistoryBalance(history: LedgerAction[]) {
 
   const balance: Dept[] = [];
 
-  splits.forEach((split) => {
+  splitOutdatedJoints({ joints, splits }).forEach((split) => {
     // First check if "whom" is in dept to repay it
     const whomDeptIndex = balance.findIndex(
       (s) =>
@@ -125,6 +125,7 @@ export function calculateLedgerState(history: LedgerAction[]) {
           );
           if (!group) {
             const joint = joints.find((joint) => joint.includes(memberId));
+            if (joint && joint.includes(action.memberId)) return;
             splitWithGroups.push(joint || [memberId]);
           }
         });
@@ -132,7 +133,7 @@ export function calculateLedgerState(history: LedgerAction[]) {
         splitWithGroups.forEach((who) => {
           splits.push({
             who,
-            whom: [action.memberId],
+            whom: biggestJoint(joints, [action.memberId]),
             value: value * who.length,
           });
         });
@@ -154,11 +155,82 @@ export function calculateLedgerState(history: LedgerAction[]) {
         } else {
           joints.push([action.memberId, action.joiningMemberId]);
         }
+        break;
+      }
+
+      case "separate": {
+        const jointIndex = joints.findIndex(
+          (j) =>
+            j.includes(action.memberId) && j.includes(action.separatingMemberId)
+        );
+        const joint = joints[jointIndex];
+
+        if (joint) {
+          joints[jointIndex] = remove(joint, action.separatingMemberId);
+          if (joints[jointIndex].length === 1) joints.splice(jointIndex, 1);
+        }
+        break;
       }
     }
   });
 
   return { members, joints, splits };
+}
+
+export function splitOutdatedJoints({
+  joints,
+  splits,
+}: {
+  joints: string[][];
+  splits: Dept[];
+}): Dept[] {
+  const balance: Dept[] = [];
+
+  splits.forEach((split) => {
+    const whoJointFound =
+      split.who.length === 1 || joints.find((j) => equalJoints(j, split.who));
+    const whomJointFound =
+      split.whom.length === 1 || joints.find((j) => equalJoints(j, split.whom));
+
+    if (!whoJointFound && !whomJointFound) {
+      const value = split.value / (split.who.length + split.whom.length);
+      split.who.forEach((who) => {
+        split.whom.forEach((whom) => {
+          balance.push({
+            who: [who],
+            whom: [whom],
+            value,
+          });
+        });
+      });
+    } else if (!whoJointFound) {
+      const value = split.value / split.who.length;
+      split.who.forEach((who) => {
+        balance.push({
+          who: [who],
+          whom: split.whom,
+          value,
+        });
+      });
+    } else if (!whomJointFound) {
+      const value = split.value / split.whom.length;
+      split.whom.forEach((whom) => {
+        balance.push({
+          who: split.who,
+          whom: [whom],
+          value,
+        });
+      });
+    } else {
+      balance.push(split);
+    }
+  });
+
+  return balance;
+}
+
+export function equalJoints(a: string[], b: string[]) {
+  return a.length === b.length && a.every((i) => b.includes(i));
 }
 
 export function biggestJoint(joints: string[][], joint: string[]) {
