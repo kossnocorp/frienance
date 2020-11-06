@@ -51,6 +51,7 @@ export type LedgerExpenseAction = {
 export type LedgerGiveAction = {
   type: "give";
   memberId: string;
+  givingToMemberId: string;
   value: number;
   currency: string;
   valueUSD: number;

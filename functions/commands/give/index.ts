@@ -56,6 +56,7 @@ export default async function giveMoney({
           const action: LedgerGiveAction = {
             type: "give",
             memberId,
+            givingToMemberId,
             value: val,
             currency,
             valueUSD,

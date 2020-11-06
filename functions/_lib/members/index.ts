@@ -25,7 +25,7 @@ export function findMemberByHandle({
   message: Message;
   handle: string;
 }): [memberId: string, member: Member] | undefined {
-  const usernameCaptures = handle.match(/^@(.+)/);
+  const usernameCaptures = handle.match(/^\@(.+)/);
   if (usernameCaptures) {
     const username = usernameCaptures[1];
     return Object.entries(ledgerData.members).find(

@@ -6,6 +6,7 @@ import {
 } from ".";
 import {
   LedgerExpenseAction,
+  LedgerGiveAction,
   LedgerJoinAction,
   LedgerRegisterAction,
   LedgerSeparateAction,
@@ -294,6 +295,29 @@ describe("Calculate balance command", () => {
         ],
       });
     });
+
+    it("process money transfers", () => {
+      const result = calculateLedgerState([
+        registerSasha,
+        registerNadi,
+        expense("nadi", 100),
+        expense("sasha", 10),
+        registerTati,
+        join("sasha", "tati"),
+        expense("nadi", 90),
+        give("nadi", "sasha", 100),
+      ]);
+      expect(result).toEqual({
+        members: { sasha, nadi, tati },
+        joints: [["sasha", "tati"]],
+        splits: [
+          { who: ["sasha"], whom: ["nadi"], value: 50 },
+          { who: ["nadi"], whom: ["sasha"], value: 5 },
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 100 },
+        ],
+      });
+    });
   });
 
   describe("splitOutdatedJoints", () => {
@@ -447,6 +471,27 @@ function expense(memberId: string, value: number): LedgerExpenseAction {
   return {
     type: "expense",
     memberId,
+    value,
+    currency: "USD",
+    valueUSD: value,
+    exchangeRate: {
+      base: "USD",
+      rate: 1,
+      date: new Date(),
+    },
+    createdAt: new Date(),
+  };
+}
+
+function give(
+  memberId: string,
+  givingToMemberId: string,
+  value: number
+): LedgerGiveAction {
+  return {
+    type: "give",
+    memberId,
+    givingToMemberId,
     value,
     currency: "USD",
     valueUSD: value,
