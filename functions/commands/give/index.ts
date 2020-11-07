@@ -26,7 +26,7 @@ export default async function giveMoney({
     const memberId = base64(telegramUserId);
 
     const argsCaptures = args.match(
-      /^(\@?\w+)\s*(\d+)(?:\s*(\w+))?(?:\s*-\s*(.+))?$/
+      /^(\@?\w+)\s*(\d+)(?:\s*(\w+))?(?:\s*[-–]\s*(.+))?$/
     );
 
     if (argsCaptures) {

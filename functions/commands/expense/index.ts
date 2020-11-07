@@ -22,7 +22,7 @@ export default async function trackExpense({
     const telegramUserId = from.id;
     const memberId = base64(telegramUserId);
 
-    const argsCaptures = args.match(/^(\d+)(?:\s*(\w+))?(?:\s*-\s*(.+))?$/);
+    const argsCaptures = args.match(/^(\d+)(?:\s*(\w+))?(?:\s*[-–]\s*(.+))?$/);
 
     if (argsCaptures) {
       const [_, valueStr, currencyStr, comment] = argsCaptures;
