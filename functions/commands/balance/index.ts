@@ -145,7 +145,7 @@ export function calculateLedgerState(history: LedgerAction[]) {
         splits.push({
           who: biggestJoint(joints, [action.givingToMemberId]),
           whom: biggestJoint(joints, [action.memberId]),
-          value: action.value,
+          value: action.valueUSD,
         });
         break;
       }

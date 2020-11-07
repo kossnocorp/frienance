@@ -318,6 +318,29 @@ describe("Calculate balance command", () => {
         ],
       });
     });
+
+    it("uses USD values", () => {
+      const result = calculateLedgerState([
+        registerSasha,
+        registerNadi,
+        expenseRUB("nadi", 100),
+        expenseRUB("sasha", 10),
+        registerTati,
+        join("sasha", "tati"),
+        expenseRUB("nadi", 90),
+        giveRUB("nadi", "sasha", 100),
+      ]);
+      expect(result).toEqual({
+        members: { sasha, nadi, tati },
+        joints: [["sasha", "tati"]],
+        splits: [
+          { who: ["sasha"], whom: ["nadi"], value: 50 * 0.013 },
+          { who: ["nadi"], whom: ["sasha"], value: 5 * 0.013 },
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 * 0.013 },
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 100 * 0.013 },
+        ],
+      });
+    });
   });
 
   describe("splitOutdatedJoints", () => {
@@ -483,6 +506,22 @@ function expense(memberId: string, value: number): LedgerExpenseAction {
   };
 }
 
+function expenseRUB(memberId: string, value: number): LedgerExpenseAction {
+  return {
+    type: "expense",
+    memberId,
+    value,
+    currency: "RUB",
+    valueUSD: value * 0.013,
+    exchangeRate: {
+      base: "RUB",
+      rate: 0.013,
+      date: new Date(),
+    },
+    createdAt: new Date(),
+  };
+}
+
 function give(
   memberId: string,
   givingToMemberId: string,
@@ -498,6 +537,27 @@ function give(
     exchangeRate: {
       base: "USD",
       rate: 1,
+      date: new Date(),
+    },
+    createdAt: new Date(),
+  };
+}
+
+function giveRUB(
+  memberId: string,
+  givingToMemberId: string,
+  value: number
+): LedgerGiveAction {
+  return {
+    type: "give",
+    memberId,
+    givingToMemberId,
+    value,
+    currency: "RUB",
+    valueUSD: value * 0.013,
+    exchangeRate: {
+      base: "RUB",
+      rate: 0.013,
       date: new Date(),
     },
     createdAt: new Date(),
