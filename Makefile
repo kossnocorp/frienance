@@ -13,7 +13,11 @@ test:
 test-watch:
 	@${BIN}/jest --watch
 
-deploy:
+build:
+	@${BIN}/tsc
+.PHONY: build
+
+deploy: build
 	@cp firebase.json build
 	@cp .firebaserc build
 	@cp package.json build
