@@ -3,6 +3,7 @@ import * as functions from "firebase-functions";
 import { Update } from "telegram-typings";
 import { get, set } from "typesaurus";
 import calculateBalance from "./commands/balance";
+import borrowMoney from "./commands/borrow";
 import trackExpense from "./commands/expense";
 import giveMoney from "./commands/give";
 import joinMembers from "./commands/join";
@@ -83,6 +84,16 @@ export const webhook = functions.https.onRequest(async (request, response) => {
 
         case "give":
           await giveMoney({
+            telegramChatId,
+            message,
+            args,
+            ledgerId,
+            ledgerData,
+          });
+          break;
+
+        case "borrow":
+          await borrowMoney({
             telegramChatId,
             message,
             args,

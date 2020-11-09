@@ -1,12 +1,17 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import { Ledger, LedgerGiveAction, ledgers } from "../../db";
+import {
+  Ledger,
+  LedgerBorrowAction,
+  LedgerGiveAction,
+  ledgers,
+} from "../../db";
 import base64 from "../../_lib/base64";
 import { getExchangeRate } from "../../_lib/currency";
 import { findMemberByHandle } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
 
-export default async function giveMoney({
+export default async function borrowMoney({
   telegramChatId,
   message,
   args,
@@ -34,7 +39,7 @@ export default async function giveMoney({
       const currency = currencyStr?.toUpperCase() || "USD";
       const val = parseInt(valueStr);
 
-      const givingToMemberEntry = findMemberByHandle({
+      const borrowingFromMemberEntry = findMemberByHandle({
         ledgerData,
         message,
         handle,
@@ -42,21 +47,24 @@ export default async function giveMoney({
 
       // TODO: Validate value and currency
 
-      if (givingToMemberEntry) {
-        const [givingToMemberId, givingToMember] = givingToMemberEntry;
+      if (borrowingFromMemberEntry) {
+        const [
+          borrowingFromMemberId,
+          borrowingFromMember,
+        ] = borrowingFromMemberEntry;
 
-        if (givingToMemberId !== memberId) {
+        if (borrowingFromMemberId !== memberId) {
           console.debug(
-            `Adding a money transfer for member ${memberId} to ${givingToMemberId} ${valueStr} ${currency} - ${comment}`
+            `Adding a money borrow from member ${memberId} to ${borrowingFromMemberId} ${valueStr} ${currency} - ${comment}`
           );
 
           const exchangeRate = await getExchangeRate(currency);
           const valueUSD = exchangeRate.rate * val;
 
-          const action: LedgerGiveAction = {
-            type: "give",
+          const action: LedgerBorrowAction = {
+            type: "borrow",
             memberId,
-            givingToMemberId,
+            borrowingFromMemberId,
             value: val,
             currency,
             valueUSD,
@@ -71,24 +79,24 @@ export default async function giveMoney({
           await sendMessage({
             chatId: telegramChatId,
             replyToId: message.message_id,
-            text: `Added a money transfer to ${handle}: ${val} ${currency}${
+            text: `Added a money transfer from ${handle}: ${val} ${currency}${
               currency !== "USD" ? ` (${valueUSD} USD)` : ""
             }${comment ? ` - ${comment}` : ""}`,
           });
         } else {
           console.debug(
-            "Ignoring the give command as the member trying to give the money themselves"
+            "Ignoring the borrow command as the member trying to borrow the money from themselves"
           );
 
           await sendMessage({
             chatId: telegramChatId,
             replyToId: message.message_id,
-            text: "Sorry, you can't give money yourself",
+            text: "Sorry, you can't borrow money from yourself",
           });
         }
       } else {
         console.debug(
-          `Ignoring the give command as the member with handle "${handle} is not found in the ledger`
+          `Ignoring the borrow command as the member with handle "${handle} is not found in the ledger`
         );
 
         await sendMessage({
@@ -98,19 +106,23 @@ export default async function giveMoney({
         });
       }
     } else {
-      console.debug("Ignoring the give command as I can't parse the arguments");
+      console.debug(
+        "Ignoring the borrow command as I can't parse the arguments"
+      );
 
       await sendMessage({
         chatId: telegramChatId,
         replyToId: message.message_id,
         text: `Can't parse the command, please make sure you format it correctly:
 
-"/give @kossnocorp 100" - to give @kossnocorp 100 USD
-"/give 100 CZK" - to give @kossnocorp 100 CZK
-"/give 100 RUB - For beer" - to give @kossnocorp 100 RUB with comment`,
+"/borrow @kossnocorp 100" - to borrow 100 USD from @kossnocorp
+"/borrow 100 CZK" - to borrow 100 CZK from @kossnocorp
+"/borrow 100 RUB - For beer" - to borrow 100 RUB from @kossnocorp with a comment`,
       });
     }
   } else {
-    console.debug("Ignoring the give command as I can't find the sender user");
+    console.debug(
+      "Ignoring the borrow command as I can't find the sender user"
+    );
   }
 }

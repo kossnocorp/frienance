@@ -168,6 +168,15 @@ export function calculateLedgerState(history: LedgerAction[]) {
         break;
       }
 
+      case "borrow": {
+        splits.push({
+          who: biggestJoint(joints, [action.memberId]),
+          whom: biggestJoint(joints, [action.borrowingFromMemberId]),
+          value: action.valueUSD,
+        });
+        break;
+      }
+
       case "join": {
         const jointIndex = joints.findIndex(
           (j) =>

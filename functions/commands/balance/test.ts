@@ -5,6 +5,7 @@ import {
   splitOutdatedJoints,
 } from ".";
 import {
+  LedgerBorrowAction,
   LedgerExpenseAction,
   LedgerGiveAction,
   LedgerJoinAction,
@@ -306,6 +307,7 @@ describe("Calculate balance command", () => {
         join("sasha", "tati"),
         expense("nadi", 90),
         give("nadi", "sasha", 100),
+        borrow("nadi", "sasha", 50),
       ]);
       expect(result).toEqual({
         members: { sasha, nadi, tati },
@@ -315,6 +317,7 @@ describe("Calculate balance command", () => {
           { who: ["nadi"], whom: ["sasha"], value: 5 },
           { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
           { who: ["sasha", "tati"], whom: ["nadi"], value: 100 },
+          { who: ["nadi"], whom: ["sasha", "tati"], value: 50 },
         ],
       });
     });
@@ -558,6 +561,27 @@ function giveRUB(
     exchangeRate: {
       base: "RUB",
       rate: 0.013,
+      date: new Date(),
+    },
+    createdAt: new Date(),
+  };
+}
+
+function borrow(
+  memberId: string,
+  borrowingFromMemberId: string,
+  value: number
+): LedgerBorrowAction {
+  return {
+    type: "borrow",
+    memberId,
+    borrowingFromMemberId,
+    value,
+    currency: "USD",
+    valueUSD: value,
+    exchangeRate: {
+      base: "USD",
+      rate: 1,
       date: new Date(),
     },
     createdAt: new Date(),

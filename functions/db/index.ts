@@ -25,6 +25,7 @@ export type LedgerAction =
   | LedgerRegisterAction
   | LedgerExpenseAction
   | LedgerJoinAction
+  | LedgerBorrowAction
   | LedgerGiveAction
   | LedgerSeparateAction;
 
@@ -52,6 +53,18 @@ export type LedgerGiveAction = {
   type: "give";
   memberId: string;
   givingToMemberId: string;
+  value: number;
+  currency: string;
+  valueUSD: number;
+  exchangeRate: ExchangeRate;
+  createdAt: Date;
+  comment?: string;
+};
+
+export type LedgerBorrowAction = {
+  type: "borrow";
+  memberId: string;
+  borrowingFromMemberId: string;
   value: number;
   currency: string;
   valueUSD: number;
