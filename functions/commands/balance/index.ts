@@ -30,7 +30,7 @@ export default async function calculateBalance({
     ledgerData.history
   );
 
-  const argsCaptures = args.match(/^(\d+)(?:\s*(\w+))?(?:\s*[-–]\s*(.+))?$/);
+  const argsCaptures = args.match(/^(\w+)?/);
   const currency = argsCaptures?.[1].toUpperCase() || "USD";
   const exchangeRate = await getExchangeRate(currency);
 
