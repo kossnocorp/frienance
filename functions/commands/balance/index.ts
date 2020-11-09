@@ -1,6 +1,7 @@
 import { remove, uniq } from "js-fns";
 import { Message } from "telegram-typings";
 import { Ledger, LedgerAction, Member } from "../../db";
+import { getExchangeRate } from "../../_lib/currency";
 import { listMembers } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
 
@@ -13,11 +14,13 @@ export type Dept = {
 export default async function calculateBalance({
   telegramChatId,
   message,
+  args,
   ledgerId,
   ledgerData,
 }: {
   telegramChatId: number;
   message: Message;
+  args: string;
   ledgerId: string;
   ledgerData: Ledger;
 }) {
@@ -27,6 +30,19 @@ export default async function calculateBalance({
     ledgerData.history
   );
 
+  const argsCaptures = args.match(/^(\d+)(?:\s*(\w+))?(?:\s*[-–]\s*(.+))?$/);
+  const currency = argsCaptures?.[1].toUpperCase() || "USD";
+  const exchangeRate = await getExchangeRate(currency);
+
+  // TODO: Validate currency
+
+  function formatValue(value: number) {
+    return (
+      `${value * exchangeRate.rate} ${currency}` +
+      (currency !== "USD" ? ` (${value} USD)` : "")
+    );
+  }
+
   await sendMessage({
     chatId: telegramChatId,
     replyToId: message.message_id,
@@ -34,7 +50,9 @@ export default async function calculateBalance({
       .map((d) => {
         const who = d.who.map((id) => members[id]);
         const whom = d.whom.map((id) => members[id]);
-        return `${listMembers(who)} owes ${listMembers(whom)} ${d.value} USD`;
+        return `${listMembers(who)} owes ${listMembers(whom)} ${formatValue(
+          d.value
+        )}`;
       })
       .join("\n\n"),
   });

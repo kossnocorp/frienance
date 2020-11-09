@@ -95,6 +95,7 @@ export const webhook = functions.https.onRequest(async (request, response) => {
           await calculateBalance({
             telegramChatId,
             message,
+            args,
             ledgerId,
             ledgerData,
           });
