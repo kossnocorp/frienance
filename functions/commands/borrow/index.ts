@@ -81,6 +81,7 @@ export default async function borrowMoney({
             currency,
             valueUSD,
             exchangeRate,
+            comment,
             createdAt: new Date(),
           };
 

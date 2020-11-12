@@ -72,6 +72,7 @@ export default async function giveMoney({
             currency,
             valueUSD,
             exchangeRate,
+            comment,
             createdAt: new Date(),
           };
 

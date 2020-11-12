@@ -54,6 +54,7 @@ export default async function trackExpense({
         memberId,
         value: val,
         currency,
+        comment,
         valueUSD,
         exchangeRate,
         createdAt: new Date(),
