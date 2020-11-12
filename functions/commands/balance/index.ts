@@ -1,6 +1,6 @@
 import { remove, uniq } from "js-fns";
 import { Message } from "telegram-typings";
-import { Ledger, LedgerAction, Member } from "../../db";
+import { ExchangeRate, Ledger, LedgerAction, Member } from "../../db";
 import { getExchangeRate } from "../../_lib/currency";
 import { listMembers } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
@@ -32,9 +32,18 @@ export default async function calculateBalance({
 
   const argsCaptures = args.match(/^(\w+)/);
   const currency = argsCaptures?.[1].toUpperCase() || "USD";
-  const exchangeRate = await getExchangeRate(currency);
 
-  // TODO: Validate currency
+  let exchangeRate: ExchangeRate;
+  try {
+    exchangeRate = await getExchangeRate(currency);
+  } catch (err) {
+    console.debug(`Failed to get exchange rate for ${currency}`);
+    return sendMessage({
+      chatId: telegramChatId,
+      replyToId: message.message_id,
+      text: `Can't get exchange rate for ${currency}, please make sure that you use valid currency code`,
+    });
+  }
 
   function formatValue(value: number) {
     return (

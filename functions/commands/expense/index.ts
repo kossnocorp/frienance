@@ -1,6 +1,6 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import { LedgerExpenseAction, ledgers } from "../../db";
+import { ExchangeRate, LedgerExpenseAction, ledgers } from "../../db";
 import base64 from "../../_lib/base64";
 import { getExchangeRate } from "../../_lib/currency";
 import { sendMessage } from "../../_lib/telegram";
@@ -26,16 +26,27 @@ export default async function trackExpense({
 
     if (argsCaptures) {
       const [_, valueStr, currencyStr, comment] = argsCaptures;
-      const currency = currencyStr.toUpperCase() || "USD";
+      const currency = currencyStr?.toUpperCase() || "USD";
       const val = parseInt(valueStr);
 
-      // TODO: Validate value and currency
+      // TODO: Validate value
 
       console.debug(
         `Adding an expense for member (${memberId}): ${valueStr} ${currency} - ${comment}`
       );
 
-      const exchangeRate = await getExchangeRate(currency);
+      let exchangeRate: ExchangeRate;
+      try {
+        exchangeRate = await getExchangeRate(currency);
+      } catch (err) {
+        console.debug(`Failed to get exchange rate for ${currency}`);
+        return sendMessage({
+          chatId: telegramChatId,
+          replyToId: message.message_id,
+          text: `Can't get exchange rate for ${currency}, please make sure that you use valid currency code`,
+        });
+      }
+
       const valueUSD = exchangeRate.rate * val;
 
       const action: LedgerExpenseAction = {

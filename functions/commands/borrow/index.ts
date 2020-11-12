@@ -1,6 +1,7 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
 import {
+  ExchangeRate,
   Ledger,
   LedgerBorrowAction,
   LedgerGiveAction,
@@ -45,7 +46,7 @@ export default async function borrowMoney({
         handle,
       });
 
-      // TODO: Validate value and currency
+      // TODO: Validate value
 
       if (borrowingFromMemberEntry) {
         const [
@@ -58,7 +59,18 @@ export default async function borrowMoney({
             `Adding a money borrow from member ${memberId} to ${borrowingFromMemberId} ${valueStr} ${currency} - ${comment}`
           );
 
-          const exchangeRate = await getExchangeRate(currency);
+          let exchangeRate: ExchangeRate;
+          try {
+            exchangeRate = await getExchangeRate(currency);
+          } catch (err) {
+            console.debug(`Failed to get exchange rate for ${currency}`);
+            return sendMessage({
+              chatId: telegramChatId,
+              replyToId: message.message_id,
+              text: `Can't get exchange rate for ${currency}, please make sure that you use valid currency code`,
+            });
+          }
+
           const valueUSD = exchangeRate.rate * val;
 
           const action: LedgerBorrowAction = {

@@ -1,6 +1,6 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import { Ledger, LedgerGiveAction, ledgers } from "../../db";
+import { ExchangeRate, Ledger, LedgerGiveAction, ledgers } from "../../db";
 import base64 from "../../_lib/base64";
 import { getExchangeRate } from "../../_lib/currency";
 import { findMemberByHandle } from "../../_lib/members";
@@ -40,7 +40,7 @@ export default async function giveMoney({
         handle,
       });
 
-      // TODO: Validate value and currency
+      // TODO: Validate value
 
       if (givingToMemberEntry) {
         const [givingToMemberId, givingToMember] = givingToMemberEntry;
@@ -50,7 +50,18 @@ export default async function giveMoney({
             `Adding a money transfer for member ${memberId} to ${givingToMemberId} ${valueStr} ${currency} - ${comment}`
           );
 
-          const exchangeRate = await getExchangeRate(currency);
+          let exchangeRate: ExchangeRate;
+          try {
+            exchangeRate = await getExchangeRate(currency);
+          } catch (err) {
+            console.debug(`Failed to get exchange rate for ${currency}`);
+            return sendMessage({
+              chatId: telegramChatId,
+              replyToId: message.message_id,
+              text: `Can't get exchange rate for ${currency}, please make sure that you use valid currency code`,
+            });
+          }
+
           const valueUSD = exchangeRate.rate * val;
 
           const action: LedgerGiveAction = {
