@@ -102,6 +102,16 @@ export const webhook = functions.https.onRequest(async (request, response) => {
           });
           break;
 
+        case "relief":
+          await reliefMember({
+            telegramChatId,
+            message,
+            args,
+            ledgerId,
+            ledgerData,
+          });
+          break;
+
         case "balance":
           await calculateBalance({
             telegramChatId,
