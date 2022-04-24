@@ -8,6 +8,7 @@ import trackExpense from "./commands/expense";
 import giveMoney from "./commands/give";
 import joinMembers from "./commands/join";
 import registerMember from "./commands/register";
+import reliefMember from "./commands/relief";
 import separateMembers from "./commands/separate";
 import { Ledger, LedgerActionType, ledgers } from "./db";
 import base64 from "./_lib/base64";
