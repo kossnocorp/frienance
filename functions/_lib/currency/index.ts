@@ -1,12 +1,9 @@
 import fetch from "node-fetch";
 import { ExchangeRate } from "../../db";
+import * as functions from "firebase-functions";
 
-export type ExchangeRateResponse = {
-  rates: {
-    USD: number;
-  };
-  base: string;
-  date: string; // "2020-11-02"
+const { key } = (functions.config().currency_converter || {}) as {
+  key?: string;
 };
 
 export async function getExchangeRate(base: string): Promise<ExchangeRate> {
@@ -18,14 +15,16 @@ export async function getExchangeRate(base: string): Promise<ExchangeRate> {
     };
   }
 
+  const conversionKey = `${base}_USD`;
+
   const response = await fetch(
-    `https://api.exchangeratesapi.io/latest?base=${base}&symbols=USD`
+    `https://free.currconv.com/api/v7/convert?q=${conversionKey}&compact=ultra&apiKey=${key}`
   );
-  const json = (await response.json()) as ExchangeRateResponse;
+  const json = await response.json();
 
   return {
     base,
-    rate: json.rates.USD,
+    rate: json[conversionKey],
     date: new Date(),
   };
 }
