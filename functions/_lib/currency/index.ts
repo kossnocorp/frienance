@@ -18,7 +18,7 @@ export async function getExchangeRate(base: string): Promise<ExchangeRate> {
   const conversionKey = `${base}_USD`;
 
   const response = await fetch(
-    `https://free.currconv.com/api/v7/convert?q=${conversionKey}&compact=ultra&apiKey=${key}`
+    `https://prepaid.currconv.com/api/v7/convert?q=${conversionKey}&compact=ultra&apiKey=${key}`
   );
   const json = await response.json();
 
