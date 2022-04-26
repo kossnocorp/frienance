@@ -2,6 +2,7 @@ import { remove, uniq } from "js-fns";
 import { Message } from "telegram-typings";
 import { ExchangeRate, Ledger, LedgerAction, Member } from "../../db";
 import { getExchangeRate } from "../../_lib/currency";
+import { formatValue } from "../../_lib/format";
 import { listMembers } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
 
@@ -45,10 +46,10 @@ export default async function calculateBalance({
     });
   }
 
-  function formatValue(value: number) {
+  function formatMessageValue(value: number) {
     return (
-      `${value / exchangeRate.rate} ${currency}` +
-      (currency !== "USD" ? ` (${value} USD)` : "")
+      `${formatValue(value / exchangeRate.rate)} ${currency}` +
+      (currency !== "USD" ? ` (${formatValue(value)} USD)` : "")
     );
   }
 
@@ -59,9 +60,9 @@ export default async function calculateBalance({
       .map((d) => {
         const who = d.who.map((id) => members[id]);
         const whom = d.whom.map((id) => members[id]);
-        return `${listMembers(who)} owes ${listMembers(whom)} ${formatValue(
-          d.value
-        )}`;
+        return `${listMembers(who)} owes ${listMembers(
+          whom
+        )} ${formatMessageValue(d.value)}`;
       })
       .join("\n\n"),
   });

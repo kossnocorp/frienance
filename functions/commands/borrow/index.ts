@@ -9,6 +9,7 @@ import {
 } from "../../db";
 import base64 from "../../_lib/base64";
 import { getExchangeRate } from "../../_lib/currency";
+import { formatValue } from "../../_lib/format";
 import { findMemberByHandle } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
 
@@ -32,13 +33,13 @@ export default async function borrowMoney({
     const memberId = base64(telegramUserId);
 
     const argsCaptures = args.match(
-      /^(\@?\w+)\s*(\d+)(?:\s*(\w+))?(?:\s*[-–]\s*(.+))?$/
+      /^(\@?\w+)\s*(\d*\.\d+|\d+)(?:\s*(\w+))?(?:\s*[-–]\s*(.+))?$/
     );
 
     if (argsCaptures) {
       const [_, handle, valueStr, currencyStr, comment] = argsCaptures;
       const currency = currencyStr?.toUpperCase() || "USD";
-      const val = parseInt(valueStr);
+      const val = parseFloat(valueStr);
 
       const borrowingFromMemberEntry = findMemberByHandle({
         ledgerData,
@@ -49,10 +50,8 @@ export default async function borrowMoney({
       // TODO: Validate value
 
       if (borrowingFromMemberEntry) {
-        const [
-          borrowingFromMemberId,
-          borrowingFromMember,
-        ] = borrowingFromMemberEntry;
+        const [borrowingFromMemberId, borrowingFromMember] =
+          borrowingFromMemberEntry;
 
         if (borrowingFromMemberId !== memberId) {
           console.debug(
@@ -93,7 +92,7 @@ export default async function borrowMoney({
             chatId: telegramChatId,
             replyToId: message.message_id,
             text: `Added a money transfer from ${handle}: ${val} ${currency}${
-              currency !== "USD" ? ` (${valueUSD} USD)` : ""
+              currency !== "USD" ? ` (${formatValue(valueUSD)} USD)` : ""
             }${comment ? ` - ${comment}` : ""}`,
           });
         } else {

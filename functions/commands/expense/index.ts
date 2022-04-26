@@ -3,6 +3,7 @@ import { field, update, value } from "typesaurus";
 import { ExchangeRate, LedgerExpenseAction, ledgers } from "../../db";
 import base64 from "../../_lib/base64";
 import { getExchangeRate } from "../../_lib/currency";
+import { formatValue } from "../../_lib/format";
 import { sendMessage } from "../../_lib/telegram";
 
 export default async function trackExpense({
@@ -70,7 +71,7 @@ export default async function trackExpense({
         chatId: telegramChatId,
         replyToId: message.message_id,
         text: `Added an expense ${val} ${currency}${
-          currency !== "USD" ? ` (${valueUSD} USD)` : ""
+          currency !== "USD" ? ` (${formatValue(valueUSD)} USD)` : ""
         }${comment ? ` - ${comment}` : ""}`,
       });
     } else {
