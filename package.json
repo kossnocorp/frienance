@@ -6,11 +6,13 @@
     "node": "16"
   },
   "dependencies": {
+    "date-fns": "^2.28.0",
     "firebase-admin": "^10.2.0",
     "firebase-functions": "^3.21.2",
+    "form-data": "^4.0.0",
     "js-fns": "^2.5.1",
     "nanoid": "^3.1.16",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "typeroo": "^0.8.0",
     "typesaurus": "^6.2.0"
   },
@@ -24,7 +26,7 @@
     "firebase-tools": "^11.0.1",
     "jest": "^26.6.3",
     "ngrok": "^3.3.0",
-    "telegram-typings": "^4.0.0-beta",
+    "telegram-typings": "^5.0.0",
     "typescript": "^4.7.3"
   }
 }

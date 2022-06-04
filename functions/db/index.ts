@@ -1,3 +1,4 @@
+import { InterfaceUnion } from "typeroo";
 import { collection } from "typesaurus";
 
 export const ledgers = collection<Ledger>("ledgers");
@@ -21,65 +22,55 @@ export type Joint = {
   memberIds: string[];
 };
 
-export type LedgerAction =
-  | LedgerRegisterAction
-  | LedgerExpenseAction
-  | LedgerJoinAction
-  | LedgerBorrowAction
-  | LedgerGiveAction
-  | LedgerReliefAction
-  | LedgerSeparateAction;
+export type LedgerAction = InterfaceUnion<
+  LedgerRegisterAction,
+  LedgerExpenseAction,
+  LedgerJoinAction,
+  LedgerBorrowAction,
+  LedgerGiveAction,
+  LedgerReliefAction,
+  LedgerSeparateAction
+>;
 
 export type LedgerActionType = LedgerAction["type"];
 
-export type LedgerRegisterAction = {
-  type: "register";
+export interface LedgerActionBase<Type extends string> {
+  type: Type;
   memberId: string;
+  createdAt: Date;
+  comment?: string;
+}
+
+export interface LedgerActionValuedBase {
+  value: number;
+  currency: string;
+  valueUSD: number;
+  exchangeRate: ExchangeRate;
+}
+
+export interface LedgerRegisterAction extends LedgerActionBase<"register"> {
   member: Member;
-  createdAt: Date;
-};
+}
 
-export type LedgerExpenseAction = {
-  type: "expense";
-  memberId: string;
-  value: number;
-  currency: string;
-  valueUSD: number;
-  exchangeRate: ExchangeRate;
-  createdAt: Date;
-  comment?: string;
-};
+export interface LedgerExpenseAction
+  extends LedgerActionBase<"expense">,
+    LedgerActionValuedBase {}
 
-export type LedgerGiveAction = {
-  type: "give";
-  memberId: string;
+export interface LedgerGiveAction
+  extends LedgerActionBase<"give">,
+    LedgerActionValuedBase {
   givingToMemberId: string;
-  value: number;
-  currency: string;
-  valueUSD: number;
-  exchangeRate: ExchangeRate;
-  createdAt: Date;
-  comment?: string;
-};
+}
 
-export type LedgerReliefAction = {
-  type: "relief";
-  memberId: string;
+export interface LedgerReliefAction extends LedgerActionBase<"relief"> {
   relievingMemberId: string;
-  createdAt: Date;
-};
+}
 
-export type LedgerBorrowAction = {
-  type: "borrow";
-  memberId: string;
+export interface LedgerBorrowAction
+  extends LedgerActionBase<"borrow">,
+    LedgerActionValuedBase {
   borrowingFromMemberId: string;
-  value: number;
-  currency: string;
-  valueUSD: number;
-  exchangeRate: ExchangeRate;
-  createdAt: Date;
-  comment?: string;
-};
+}
 
 export type LedgerJoinAction = {
   type: "join";
@@ -95,8 +86,8 @@ export type LedgerSeparateAction = {
   createdAt: Date;
 };
 
-export type ExchangeRate = {
+export interface ExchangeRate {
   base: string;
   rate: number;
   date: Date;
-};
+}

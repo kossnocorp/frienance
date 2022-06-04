@@ -6,6 +6,7 @@ import calculateBalance from "./commands/balance";
 import borrowMoney from "./commands/borrow";
 import trackExpense from "./commands/expense";
 import giveMoney from "./commands/give";
+import generateHistory from "./commands/history";
 import joinMembers from "./commands/join";
 import registerMember from "./commands/register";
 import reliefMember from "./commands/relief";
@@ -15,7 +16,7 @@ import base64 from "./_lib/base64";
 
 admin.initializeApp();
 
-type BotCommand = LedgerActionType | "balance";
+type BotCommand = LedgerActionType | "balance" | "history";
 
 export const webhook = functions.https.onRequest(async (request, response) => {
   const telegramUpdate = request.body as Update;
@@ -122,6 +123,15 @@ export const webhook = functions.https.onRequest(async (request, response) => {
             ledgerData,
           });
           break;
+
+        case "history":
+          await generateHistory({
+            telegramChatId,
+            message,
+            args,
+            ledgerId,
+            ledgerData,
+          });
 
         default:
           console.debug(`Ignoring unknown command (${command})`);

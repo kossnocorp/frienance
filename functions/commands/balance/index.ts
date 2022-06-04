@@ -35,9 +35,7 @@ export default async function calculateBalance({
 }: CalculateBalanceProps) {
   console.debug(`Calculating balance for the ledger (${ledgerId})`);
 
-  const { members, joints, balance } = calculateLedgerBalance(
-    ledgerData.history
-  );
+  const balance = calculateLedgerBalance(ledgerData.history);
 
   const argsCaptures = args.match(/^(\w+)/);
   const currency = argsCaptures?.[1].toUpperCase() || "USD";
@@ -64,17 +62,10 @@ export default async function calculateBalance({
   await sendMessage({
     chatId: telegramChatId,
     replyToId: message.message_id,
-    text: balance.length
-      ? balance
-          .map((d) => {
-            const who = d.who.map((id) => members[id]);
-            const whom = d.whom.map((id) => members[id]);
-            return `${listMembers(who)} owes ${listMembers(
-              whom
-            )} ${formatMessageValue(d.value)}`;
-          })
-          .join("\n\n")
-      : "🎉 It's all clear, no one owes anyone",
+    text: formatBalance({
+      balance,
+      formatMessageValue,
+    }),
   });
 }
 
@@ -82,6 +73,28 @@ export interface LedgerBalance {
   members: Record<string, Member>;
   joints: string[][];
   balance: Dept[];
+}
+
+export interface FormatBalanceProps {
+  balance: LedgerBalance;
+  formatMessageValue: (value: number) => string;
+}
+
+export function formatBalance({
+  balance: { members, balance },
+  formatMessageValue,
+}: FormatBalanceProps) {
+  return balance.length
+    ? balance
+        .map((d) => {
+          const who = d.who.map((id) => members[id]);
+          const whom = d.whom.map((id) => members[id]);
+          return `${listMembers(who)} owes ${listMembers(
+            whom
+          )} ${formatMessageValue(d.value)}`;
+        })
+        .join("\n\n")
+    : "🎉 It's all clear, no one owes anyone";
 }
 
 /**
