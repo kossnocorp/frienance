@@ -64,15 +64,17 @@ export default async function calculateBalance({
   await sendMessage({
     chatId: telegramChatId,
     replyToId: message.message_id,
-    text: balance
-      .map((d) => {
-        const who = d.who.map((id) => members[id]);
-        const whom = d.whom.map((id) => members[id]);
-        return `${listMembers(who)} owes ${listMembers(
-          whom
-        )} ${formatMessageValue(d.value)}`;
-      })
-      .join("\n\n"),
+    text: balance.length
+      ? balance
+          .map((d) => {
+            const who = d.who.map((id) => members[id]);
+            const whom = d.whom.map((id) => members[id]);
+            return `${listMembers(who)} owes ${listMembers(
+              whom
+            )} ${formatMessageValue(d.value)}`;
+          })
+          .join("\n\n")
+      : "🎉 It's all clear, no one owes anyone",
   });
 }
 
