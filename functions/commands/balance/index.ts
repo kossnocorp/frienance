@@ -6,11 +6,19 @@ import { formatValue } from "../../_lib/format";
 import { listMembers } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
 
-export type Dept = {
+export interface Dept {
   who: string[];
   whom: string[];
   value: number;
-};
+}
+
+export interface CalculateBalanceProps {
+  telegramChatId: number;
+  message: Message;
+  args: string;
+  ledgerId: string;
+  ledgerData: Ledger;
+}
 
 export default async function calculateBalance({
   telegramChatId,
@@ -18,13 +26,7 @@ export default async function calculateBalance({
   args,
   ledgerId,
   ledgerData,
-}: {
-  telegramChatId: number;
-  message: Message;
-  args: string;
-  ledgerId: string;
-  ledgerData: Ledger;
-}) {
+}: CalculateBalanceProps) {
   console.debug(`Calculating balance for the ledger (${ledgerId})`);
 
   const { members, joints, balance } = calculateHistoryBalance(
@@ -127,6 +129,11 @@ export function calculateHistoryBalance(history: LedgerAction[]) {
   return { members, joints, balance };
 }
 
+/**
+ * Calculate the ledger state (who owns who) from the actions history.
+ * @param history - the ledger actions history
+ * @returns actual ledger state
+ */
 export function calculateLedgerState(history: LedgerAction[]) {
   const members: Record<string, Member> = {};
   const joints: string[][] = [];
@@ -217,19 +224,32 @@ export function calculateLedgerState(history: LedgerAction[]) {
         }
         break;
       }
+
+      case "relief": {
+        const { relievingMemberId, memberId } = action;
+        for (let i = splits.length - 1; i >= 0; i--) {
+          const { who, whom } = splits[i];
+          if (who.includes(relievingMemberId) && whom.includes(memberId)) {
+            splits.splice(i, 1);
+          }
+        }
+        break;
+      }
     }
   });
 
   return { members, joints, splits };
 }
 
+export interface SplitOutdatedJointsProps {
+  joints: string[][];
+  splits: Dept[];
+}
+
 export function splitOutdatedJoints({
   joints,
   splits,
-}: {
-  joints: string[][];
-  splits: Dept[];
-}): Dept[] {
+}: SplitOutdatedJointsProps): Dept[] {
   const balance: Dept[] = [];
 
   splits.forEach((split) => {

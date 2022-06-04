@@ -10,6 +10,7 @@ import {
   LedgerGiveAction,
   LedgerJoinAction,
   LedgerRegisterAction,
+  LedgerReliefAction,
   LedgerSeparateAction,
 } from "../../db";
 
@@ -344,6 +345,31 @@ describe("Calculate balance command", () => {
         ],
       });
     });
+
+    it("processes relief", () => {
+      const result = calculateLedgerState([
+        registerSasha,
+        registerNadi,
+        expense("nadi", 100),
+        expense("sasha", 10),
+        registerTati,
+        join("sasha", "tati"),
+        expense("nadi", 90),
+        give("nadi", "sasha", 100),
+        borrow("nadi", "sasha", 50),
+        relief("nadi", "sasha"),
+        borrow("sasha", "nadi", 42),
+      ]);
+      expect(result).toEqual({
+        members: { sasha, nadi, tati },
+        joints: [["sasha", "tati"]],
+        splits: [
+          { who: ["nadi"], whom: ["sasha"], value: 5 },
+          { who: ["nadi"], whom: ["sasha", "tati"], value: 50 },
+          { who: ["sasha", "tati"], whom: ["nadi"], value: 42 },
+        ],
+      });
+    });
   });
 
   describe("splitOutdatedJoints", () => {
@@ -605,6 +631,18 @@ function separate(
     type: "separate",
     memberId,
     separatingMemberId,
+    createdAt: new Date(),
+  };
+}
+
+function relief(
+  memberId: string,
+  relievingMemberId: string
+): LedgerReliefAction {
+  return {
+    type: "relief",
+    memberId,
+    relievingMemberId,
     createdAt: new Date(),
   };
 }

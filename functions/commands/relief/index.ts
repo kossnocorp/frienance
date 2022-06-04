@@ -1,15 +1,7 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import {
-  ExchangeRate,
-  Ledger,
-  LedgerBorrowAction,
-  LedgerGiveAction,
-  LedgerReliefAction,
-  ledgers,
-} from "../../db";
+import { Ledger, LedgerReliefAction, ledgers } from "../../db";
 import base64 from "../../_lib/base64";
-import { getExchangeRate } from "../../_lib/currency";
 import { findMemberByHandle } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
 
