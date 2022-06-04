@@ -1,5 +1,6 @@
 import { remove, uniq } from "js-fns";
 import { Message } from "telegram-typings";
+import { InterfaceUnion } from "typeroo";
 import { ExchangeRate, Ledger, LedgerAction, Member } from "../../db";
 import { getExchangeRate } from "../../_lib/currency";
 import { formatValue } from "../../_lib/format";
@@ -10,6 +11,11 @@ export interface Dept {
   who: string[];
   whom: string[];
   value: number;
+}
+
+export interface Relief {
+  who: string;
+  whom: string;
 }
 
 export interface CalculateBalanceProps {
@@ -29,7 +35,7 @@ export default async function calculateBalance({
 }: CalculateBalanceProps) {
   console.debug(`Calculating balance for the ledger (${ledgerId})`);
 
-  const { members, joints, balance } = calculateHistoryBalance(
+  const { members, joints, balance } = calculateLedgerBalance(
     ledgerData.history
   );
 
@@ -70,12 +76,36 @@ export default async function calculateBalance({
   });
 }
 
-export function calculateHistoryBalance(history: LedgerAction[]) {
-  const { members, joints, splits } = calculateLedgerState(history);
+export interface LedgerBalance {
+  members: Record<string, Member>;
+  joints: string[][];
+  balance: Dept[];
+}
+
+/**
+ *
+ * @param history - the ledger actions history
+ * @returns
+ */
+export function calculateLedgerBalance(history: LedgerAction[]): LedgerBalance {
+  const { members, joints, operations } = calculateLedgerState(history);
 
   const balance: Dept[] = [];
 
-  splitOutdatedJoints({ joints, splits }).forEach((split) => {
+  splitOutdatedJoints({ joints, operations }).forEach((operation) => {
+    if (operation.type === "relief") {
+      const relief = operation.relief;
+      for (let i = balance.length - 1; i >= 0; i--) {
+        const dept = balance[i];
+        if (dept.who.includes(relief.whom) && dept.whom.includes(relief.who)) {
+          balance.splice(i, 1);
+        }
+      }
+      return;
+    }
+
+    const split = operation.dept;
+
     // First check if "whom" is in dept to repay it
     const whomDeptIndex = balance.findIndex(
       (s) =>
@@ -129,15 +159,42 @@ export function calculateHistoryBalance(history: LedgerAction[]) {
   return { members, joints, balance };
 }
 
+export type LedgerOperation = InterfaceUnion<
+  LedgerOperationDept,
+  LedgerOperationRelief
+>;
+
+export interface LedgerOperationDept {
+  type: "dept";
+  dept: Dept;
+}
+
+export interface LedgerOperationRelief {
+  type: "relief";
+  relief: Relief;
+}
+
 /**
- * Calculate the ledger state (who owns who) from the actions history.
+ * The ledger state that holds all the information required to calculate
+ * the balance.
+ */
+export interface LedgerState {
+  members: Record<string, Member>;
+  joints: string[][];
+  operations: LedgerOperation[];
+}
+
+/**
+ * Calculate the ledger state (active members, who owns who, etc.) from
+ * the actions history.
+ *
  * @param history - the ledger actions history
  * @returns actual ledger state
  */
-export function calculateLedgerState(history: LedgerAction[]) {
+export function calculateLedgerState(history: LedgerAction[]): LedgerState {
   const members: Record<string, Member> = {};
   const joints: string[][] = [];
-  const splits: Dept[] = [];
+  const operations: LedgerOperation[] = [];
 
   history.forEach((action) => {
     switch (action.type) {
@@ -166,10 +223,13 @@ export function calculateLedgerState(history: LedgerAction[]) {
         });
 
         splitWithGroups.forEach((who) => {
-          splits.push({
-            who,
-            whom: biggestJoint(joints, [action.memberId]),
-            value: value * who.length,
+          operations.push({
+            type: "dept",
+            dept: {
+              who,
+              whom: biggestJoint(joints, [action.memberId]),
+              value: value * who.length,
+            },
           });
         });
 
@@ -177,19 +237,25 @@ export function calculateLedgerState(history: LedgerAction[]) {
       }
 
       case "give": {
-        splits.push({
-          who: biggestJoint(joints, [action.givingToMemberId]),
-          whom: biggestJoint(joints, [action.memberId]),
-          value: action.valueUSD,
+        operations.push({
+          type: "dept",
+          dept: {
+            who: biggestJoint(joints, [action.givingToMemberId]),
+            whom: biggestJoint(joints, [action.memberId]),
+            value: action.valueUSD,
+          },
         });
         break;
       }
 
       case "borrow": {
-        splits.push({
-          who: biggestJoint(joints, [action.memberId]),
-          whom: biggestJoint(joints, [action.borrowingFromMemberId]),
-          value: action.valueUSD,
+        operations.push({
+          type: "dept",
+          dept: {
+            who: biggestJoint(joints, [action.memberId]),
+            whom: biggestJoint(joints, [action.borrowingFromMemberId]),
+            value: action.valueUSD,
+          },
         });
         break;
       }
@@ -226,73 +292,86 @@ export function calculateLedgerState(history: LedgerAction[]) {
       }
 
       case "relief": {
-        const { relievingMemberId, memberId } = action;
-        for (let i = splits.length - 1; i >= 0; i--) {
-          const { who, whom } = splits[i];
-          if (who.includes(relievingMemberId) && whom.includes(memberId)) {
-            splits.splice(i, 1);
-          }
-        }
+        operations.push({
+          type: "relief",
+          relief: {
+            who: action.memberId,
+            whom: action.relievingMemberId,
+          },
+        });
         break;
       }
     }
   });
 
-  return { members, joints, splits };
+  return { members, joints, operations };
 }
 
 export interface SplitOutdatedJointsProps {
   joints: string[][];
-  splits: Dept[];
+  operations: LedgerOperation[];
 }
 
 export function splitOutdatedJoints({
   joints,
-  splits,
-}: SplitOutdatedJointsProps): Dept[] {
-  const balance: Dept[] = [];
+  operations,
+}: SplitOutdatedJointsProps): LedgerOperation[] {
+  const processedOperations: LedgerOperation[] = [];
 
-  splits.forEach((split) => {
+  operations.forEach((operation) => {
+    if (operation.type === "relief") return processedOperations.push(operation);
+
+    const dept = operation.dept;
+
     const whoJointFound =
-      split.who.length === 1 || joints.find((j) => equalJoints(j, split.who));
+      dept.who.length === 1 || joints.find((j) => equalJoints(j, dept.who));
     const whomJointFound =
-      split.whom.length === 1 || joints.find((j) => equalJoints(j, split.whom));
+      dept.whom.length === 1 || joints.find((j) => equalJoints(j, dept.whom));
 
     if (!whoJointFound && !whomJointFound) {
-      const value = split.value / (split.who.length + split.whom.length);
-      split.who.forEach((who) => {
-        split.whom.forEach((whom) => {
-          balance.push({
-            who: [who],
-            whom: [whom],
-            value,
+      const value = dept.value / (dept.who.length + dept.whom.length);
+      dept.who.forEach((who) => {
+        dept.whom.forEach((whom) => {
+          processedOperations.push({
+            type: "dept",
+            dept: {
+              who: [who],
+              whom: [whom],
+              value,
+            },
           });
         });
       });
     } else if (!whoJointFound) {
-      const value = split.value / split.who.length;
-      split.who.forEach((who) => {
-        balance.push({
-          who: [who],
-          whom: split.whom,
-          value,
+      const value = dept.value / dept.who.length;
+      dept.who.forEach((who) => {
+        processedOperations.push({
+          type: "dept",
+          dept: {
+            who: [who],
+            whom: dept.whom,
+            value,
+          },
         });
       });
     } else if (!whomJointFound) {
-      const value = split.value / split.whom.length;
-      split.whom.forEach((whom) => {
-        balance.push({
-          who: split.who,
-          whom: [whom],
-          value,
+      const value = dept.value / dept.whom.length;
+      dept.whom.forEach((whom) => {
+        processedOperations.push({
+          type: "dept",
+          dept: {
+            who: dept.who,
+            whom: [whom],
+            value,
+          },
         });
       });
     } else {
-      balance.push(split);
+      processedOperations.push(operation);
     }
   });
 
-  return balance;
+  return processedOperations;
 }
 
 export function equalJoints(a: string[], b: string[]) {

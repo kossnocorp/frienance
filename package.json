@@ -11,6 +11,7 @@
     "js-fns": "^2.5.1",
     "nanoid": "^3.1.16",
     "node-fetch": "^2.6.1",
+    "typeroo": "^0.8.0",
     "typesaurus": "^6.2.0"
   },
   "devDependencies": {

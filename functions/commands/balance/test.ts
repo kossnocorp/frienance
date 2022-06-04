@@ -1,6 +1,6 @@
 import {
   biggestJoint,
-  calculateHistoryBalance,
+  calculateLedgerBalance,
   calculateLedgerState,
   splitOutdatedJoints,
 } from ".";
@@ -17,7 +17,7 @@ import {
 describe("Calculate balance command", () => {
   describe("calculateHistoryBalance", () => {
     it("calculates simple ledges", () => {
-      const result = calculateHistoryBalance([
+      const result = calculateLedgerBalance([
         registerSasha,
         registerNadi,
         expense("nadi", 100),
@@ -33,7 +33,7 @@ describe("Calculate balance command", () => {
     });
 
     it("allows to sum dept", () => {
-      const result = calculateHistoryBalance([
+      const result = calculateLedgerBalance([
         registerSasha,
         registerNadi,
         expense("nadi", 100),
@@ -49,7 +49,7 @@ describe("Calculate balance command", () => {
     });
 
     it("allows to repay dept", () => {
-      const result = calculateHistoryBalance([
+      const result = calculateLedgerBalance([
         registerSasha,
         registerNadi,
         expense("nadi", 100),
@@ -60,7 +60,7 @@ describe("Calculate balance command", () => {
     });
 
     it("allows to update dept", () => {
-      const result = calculateHistoryBalance([
+      const result = calculateLedgerBalance([
         registerSasha,
         registerNadi,
         expense("nadi", 100),
@@ -79,7 +79,7 @@ describe("Calculate balance command", () => {
     describe("joints", () => {
       it("allows to join finances", () => {
         expect(
-          calculateHistoryBalance([
+          calculateLedgerBalance([
             registerSasha,
             registerNadi,
             expense("nadi", 100),
@@ -97,7 +97,7 @@ describe("Calculate balance command", () => {
         ]);
 
         expect(
-          calculateHistoryBalance([
+          calculateLedgerBalance([
             registerSasha,
             registerNadi,
             expense("nadi", 100),
@@ -115,7 +115,7 @@ describe("Calculate balance command", () => {
 
       it("splits expenses after separation", () => {
         expect(
-          calculateHistoryBalance([
+          calculateLedgerBalance([
             registerSasha,
             registerNadi,
             registerTati,
@@ -139,7 +139,7 @@ describe("Calculate balance command", () => {
         ]);
 
         expect(
-          calculateHistoryBalance([
+          calculateLedgerBalance([
             registerSasha,
             registerNadi,
             registerTati,
@@ -163,7 +163,7 @@ describe("Calculate balance command", () => {
 
       it("considers updated joints", () => {
         expect(
-          calculateHistoryBalance([
+          calculateLedgerBalance([
             registerSasha,
             registerNadi,
             registerTati,
@@ -189,7 +189,7 @@ describe("Calculate balance command", () => {
         ]);
 
         expect(
-          calculateHistoryBalance([
+          calculateLedgerBalance([
             registerSasha,
             registerNadi,
             registerTati,
@@ -211,6 +211,40 @@ describe("Calculate balance command", () => {
         ]);
       });
     });
+
+    describe("relief", () => {
+      it("allows to relief dept", () => {
+        expect(
+          calculateLedgerBalance([
+            registerSasha,
+            registerNadi,
+            expense("nadi", 100),
+            registerTati,
+            join("sasha", "tati"),
+            relief("nadi", "sasha"),
+          ]).balance
+        ).toEqual([]);
+      });
+
+      it("ignores incorrect reliefs", () => {
+        expect(
+          calculateLedgerBalance([
+            registerSasha,
+            registerNadi,
+            expense("nadi", 100),
+            registerTati,
+            join("sasha", "tati"),
+            relief("sasha", "nadi"),
+          ]).balance
+        ).toEqual([
+          {
+            who: ["sasha", "tati"],
+            whom: ["nadi"],
+            value: 50,
+          },
+        ]);
+      });
+    });
   });
 
   describe("calculateLedgerState", () => {
@@ -224,9 +258,9 @@ describe("Calculate balance command", () => {
       expect(result).toEqual({
         members: { sasha, nadi },
         joints: [],
-        splits: [
-          { who: ["sasha"], whom: ["nadi"], value: 50 },
-          { who: ["nadi"], whom: ["sasha"], value: 5 },
+        operations: [
+          { type: "dept", dept: { who: ["sasha"], whom: ["nadi"], value: 50 } },
+          { type: "dept", dept: { who: ["nadi"], whom: ["sasha"], value: 5 } },
         ],
       });
     });
@@ -245,10 +279,13 @@ describe("Calculate balance command", () => {
       ).toEqual({
         members: { sasha, nadi, tati },
         joints: [["sasha", "tati"]],
-        splits: [
-          { who: ["sasha"], whom: ["nadi"], value: 50 },
-          { who: ["nadi"], whom: ["sasha"], value: 5 },
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+        operations: [
+          { type: "dept", dept: { who: ["sasha"], whom: ["nadi"], value: 50 } },
+          { type: "dept", dept: { who: ["nadi"], whom: ["sasha"], value: 5 } },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          },
         ],
       });
 
@@ -265,10 +302,19 @@ describe("Calculate balance command", () => {
       ).toEqual({
         members: { sasha, nadi, tati },
         joints: [["sasha", "tati"]],
-        splits: [
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
-          { who: ["nadi"], whom: ["sasha", "tati"], value: 150 },
+        operations: [
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["nadi"], whom: ["sasha", "tati"], value: 150 },
+          },
         ],
       });
     });
@@ -288,12 +334,15 @@ describe("Calculate balance command", () => {
       expect(result).toEqual({
         members: { sasha, nadi, tati },
         joints: [],
-        splits: [
-          { who: ["sasha"], whom: ["nadi"], value: 50 },
-          { who: ["nadi"], whom: ["sasha"], value: 5 },
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
-          { who: ["sasha"], whom: ["nadi"], value: 30 },
-          { who: ["tati"], whom: ["nadi"], value: 30 },
+        operations: [
+          { type: "dept", dept: { who: ["sasha"], whom: ["nadi"], value: 50 } },
+          { type: "dept", dept: { who: ["nadi"], whom: ["sasha"], value: 5 } },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          },
+          { type: "dept", dept: { who: ["sasha"], whom: ["nadi"], value: 30 } },
+          { type: "dept", dept: { who: ["tati"], whom: ["nadi"], value: 30 } },
         ],
       });
     });
@@ -313,12 +362,21 @@ describe("Calculate balance command", () => {
       expect(result).toEqual({
         members: { sasha, nadi, tati },
         joints: [["sasha", "tati"]],
-        splits: [
-          { who: ["sasha"], whom: ["nadi"], value: 50 },
-          { who: ["nadi"], whom: ["sasha"], value: 5 },
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 100 },
-          { who: ["nadi"], whom: ["sasha", "tati"], value: 50 },
+        operations: [
+          { type: "dept", dept: { who: ["sasha"], whom: ["nadi"], value: 50 } },
+          { type: "dept", dept: { who: ["nadi"], whom: ["sasha"], value: 5 } },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 100 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["nadi"], whom: ["sasha", "tati"], value: 50 },
+          },
         ],
       });
     });
@@ -337,11 +395,27 @@ describe("Calculate balance command", () => {
       expect(result).toEqual({
         members: { sasha, nadi, tati },
         joints: [["sasha", "tati"]],
-        splits: [
-          { who: ["sasha"], whom: ["nadi"], value: 50 * 0.013 },
-          { who: ["nadi"], whom: ["sasha"], value: 5 * 0.013 },
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 60 * 0.013 },
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 100 * 0.013 },
+        operations: [
+          {
+            type: "dept",
+            dept: { who: ["sasha"], whom: ["nadi"], value: 50 * 0.013 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["nadi"], whom: ["sasha"], value: 5 * 0.013 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 60 * 0.013 },
+          },
+          {
+            type: "dept",
+            dept: {
+              who: ["sasha", "tati"],
+              whom: ["nadi"],
+              value: 100 * 0.013,
+            },
+          },
         ],
       });
     });
@@ -363,10 +437,35 @@ describe("Calculate balance command", () => {
       expect(result).toEqual({
         members: { sasha, nadi, tati },
         joints: [["sasha", "tati"]],
-        splits: [
-          { who: ["nadi"], whom: ["sasha"], value: 5 },
-          { who: ["nadi"], whom: ["sasha", "tati"], value: 50 },
-          { who: ["sasha", "tati"], whom: ["nadi"], value: 42 },
+        operations: [
+          {
+            type: "dept",
+            dept: { who: ["sasha"], whom: ["nadi"], value: 50 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["nadi"], whom: ["sasha"], value: 5 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 60 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 100 },
+          },
+          {
+            type: "dept",
+            dept: { who: ["nadi"], whom: ["sasha", "tati"], value: 50 },
+          },
+          {
+            type: "relief",
+            relief: { who: "nadi", whom: "sasha" },
+          },
+          {
+            type: "dept",
+            dept: { who: ["sasha", "tati"], whom: ["nadi"], value: 42 },
+          },
         ],
       });
     });
@@ -377,21 +476,31 @@ describe("Calculate balance command", () => {
       expect(
         splitOutdatedJoints({
           joints: [],
-          splits: [{ who: ["tati", "sasha"], whom: ["nadi"], value: 30 }],
+          operations: [
+            {
+              type: "dept",
+              dept: { who: ["tati", "sasha"], whom: ["nadi"], value: 30 },
+            },
+          ],
         })
       ).toEqual([
-        { who: ["tati"], whom: ["nadi"], value: 15 },
-        { who: ["sasha"], whom: ["nadi"], value: 15 },
+        { type: "dept", dept: { who: ["tati"], whom: ["nadi"], value: 15 } },
+        { type: "dept", dept: { who: ["sasha"], whom: ["nadi"], value: 15 } },
       ]);
 
       expect(
         splitOutdatedJoints({
           joints: [],
-          splits: [{ who: ["nadi"], whom: ["tati", "sasha"], value: 30 }],
+          operations: [
+            {
+              type: "dept",
+              dept: { who: ["nadi"], whom: ["tati", "sasha"], value: 30 },
+            },
+          ],
         })
       ).toEqual([
-        { who: ["nadi"], whom: ["tati"], value: 15 },
-        { who: ["nadi"], whom: ["sasha"], value: 15 },
+        { type: "dept", dept: { who: ["nadi"], whom: ["tati"], value: 15 } },
+        { type: "dept", dept: { who: ["nadi"], whom: ["sasha"], value: 15 } },
       ]);
     });
 
@@ -399,15 +508,21 @@ describe("Calculate balance command", () => {
       expect(
         splitOutdatedJoints({
           joints: [],
-          splits: [
-            { who: ["sasha"], whom: ["lesha"], value: 40 },
-            { who: ["tati", "sasha"], whom: ["nadi"], value: 30 },
+          operations: [
+            {
+              type: "dept",
+              dept: { who: ["sasha"], whom: ["lesha"], value: 40 },
+            },
+            {
+              type: "dept",
+              dept: { who: ["tati", "sasha"], whom: ["nadi"], value: 30 },
+            },
           ],
         })
       ).toEqual([
-        { who: ["sasha"], whom: ["lesha"], value: 40 },
-        { who: ["tati"], whom: ["nadi"], value: 15 },
-        { who: ["sasha"], whom: ["nadi"], value: 15 },
+        { type: "dept", dept: { who: ["sasha"], whom: ["lesha"], value: 40 } },
+        { type: "dept", dept: { who: ["tati"], whom: ["nadi"], value: 15 } },
+        { type: "dept", dept: { who: ["sasha"], whom: ["nadi"], value: 15 } },
       ]);
     });
 
@@ -415,13 +530,18 @@ describe("Calculate balance command", () => {
       expect(
         splitOutdatedJoints({
           joints: [],
-          splits: [{ who: ["tati", "sasha"], whom: ["nadi", "ed"], value: 40 }],
+          operations: [
+            {
+              type: "dept",
+              dept: { who: ["tati", "sasha"], whom: ["nadi", "ed"], value: 40 },
+            },
+          ],
         })
       ).toEqual([
-        { who: ["tati"], whom: ["nadi"], value: 10 },
-        { who: ["tati"], whom: ["ed"], value: 10 },
-        { who: ["sasha"], whom: ["nadi"], value: 10 },
-        { who: ["sasha"], whom: ["ed"], value: 10 },
+        { type: "dept", dept: { who: ["tati"], whom: ["nadi"], value: 10 } },
+        { type: "dept", dept: { who: ["tati"], whom: ["ed"], value: 10 } },
+        { type: "dept", dept: { who: ["sasha"], whom: ["nadi"], value: 10 } },
+        { type: "dept", dept: { who: ["sasha"], whom: ["ed"], value: 10 } },
       ]);
     });
   });
