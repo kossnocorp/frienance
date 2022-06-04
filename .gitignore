@@ -4,3 +4,4 @@ firestore-debug.log
 ui-debug.log
 /build
 /secrets
+/.vscode/*.log
