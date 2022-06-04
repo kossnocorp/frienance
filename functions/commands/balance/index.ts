@@ -319,7 +319,10 @@ export function splitOutdatedJoints({
   const processedOperations: LedgerOperation[] = [];
 
   operations.forEach((operation) => {
-    if (operation.type === "relief") return processedOperations.push(operation);
+    if (operation.type === "relief") {
+      processedOperations.push(operation);
+      return;
+    }
 
     const dept = operation.dept;
 
