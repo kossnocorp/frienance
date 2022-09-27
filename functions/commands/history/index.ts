@@ -30,7 +30,8 @@ export default async function generateHistory({
   console.debug(`Generating history for the ledger (${ledgerId})`);
 
   const argsCaptures = args.match(/^(\w+)/);
-  const currency = argsCaptures?.[1].toUpperCase() || "USD";
+  const currency =
+    argsCaptures?.[1].toUpperCase() || ledgerData.currency || "USD";
 
   let exchangeRate: ExchangeRate;
   try {

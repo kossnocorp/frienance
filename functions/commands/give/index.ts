@@ -32,7 +32,8 @@ export default async function giveMoney({
 
     if (argsCaptures) {
       const [_, handle, valueStr, currencyStr, comment] = argsCaptures;
-      const currency = currencyStr?.toUpperCase() || "USD";
+      const currency =
+        currencyStr?.toUpperCase() || ledgerData.currency || "USD";
       const val = parseFloat(valueStr);
 
       const givingToMemberEntry = findMemberByHandle({

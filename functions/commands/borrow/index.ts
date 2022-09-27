@@ -38,7 +38,8 @@ export default async function borrowMoney({
 
     if (argsCaptures) {
       const [_, handle, valueStr, currencyStr, comment] = argsCaptures;
-      const currency = currencyStr?.toUpperCase() || "USD";
+      const currency =
+        currencyStr?.toUpperCase() || ledgerData.currency || "USD";
       const val = parseFloat(valueStr);
 
       const borrowingFromMemberEntry = findMemberByHandle({

@@ -4,6 +4,7 @@ import { Update } from "telegram-typings";
 import { get, set } from "typesaurus";
 import calculateBalance from "./commands/balance";
 import borrowMoney from "./commands/borrow";
+import setCurrency from "./commands/currency";
 import trackExpense from "./commands/expense";
 import giveMoney from "./commands/give";
 import generateHistory from "./commands/history";
@@ -16,7 +17,7 @@ import base64 from "./_lib/base64";
 
 admin.initializeApp();
 
-type BotCommand = LedgerActionType | "balance" | "history";
+type BotCommand = LedgerActionType | "balance" | "history" | "currency";
 
 export const webhook = functions.https.onRequest(async (request, response) => {
   const telegramUpdate = request.body as Update;
@@ -131,6 +132,14 @@ export const webhook = functions.https.onRequest(async (request, response) => {
             args,
             ledgerId,
             ledgerData,
+          });
+
+        case "currency":
+          await setCurrency({
+            telegramChatId,
+            message,
+            args,
+            ledgerId,
           });
 
         default:

@@ -3,20 +3,21 @@ import { collection } from "typesaurus";
 
 export const ledgers = collection<Ledger>("ledgers");
 
-export type Ledger = {
+export interface Ledger {
   telegramChatId: number;
   members: Record<string, Member>;
   joints: Record<string, Joint>;
   history: LedgerAction[];
-};
+  currency?: string;
+}
 
-export type Member = {
+export interface Member {
   telegramId: number;
   firstName: string;
   lastName?: string;
   username?: string;
   since: Date;
-};
+}
 
 export type Joint = {
   memberIds: string[];
@@ -72,19 +73,19 @@ export interface LedgerBorrowAction
   borrowingFromMemberId: string;
 }
 
-export type LedgerJoinAction = {
+export interface LedgerJoinAction {
   type: "join";
   memberId: string;
   joiningMemberId: string;
   createdAt: Date;
-};
+}
 
-export type LedgerSeparateAction = {
+export interface LedgerSeparateAction {
   type: "separate";
   memberId: string;
   separatingMemberId: string;
   createdAt: Date;
-};
+}
 
 export interface ExchangeRate {
   base: string;
