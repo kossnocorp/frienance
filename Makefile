@@ -19,4 +19,4 @@ deploy: build
 	@cp .firebaserc build
 	@cp package.json build
 	@cp package-lock.json build
-	@cd build && ${BIN}/firebase deploy
+	@cd build && npx firebase deploy
