@@ -1,20 +1,17 @@
-
-BIN = $(shell npm bin)
-
 start:
-	@${BIN}/tsc --watch &
+	npx tsc --watch &
 	@env GOOGLE_APPLICATION_CREDENTIALS=${CURDIR}/secrets/production/key.json \
 			CLOUD_RUNTIME_CONFIG="${CURDIR}/secrets/production/runtime.json" \
-			${BIN}/firebase emulators:start
+			npx firebase emulators:start
 
 test:
-	@${BIN}/jest
+	npx jest
 
 test-watch:
-	@${BIN}/jest --watch
+	npx jest --watch
 
 build:
-	@${BIN}/tsc
+	npx tsc
 .PHONY: build
 
 deploy: build
