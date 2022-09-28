@@ -82,7 +82,13 @@ export const webhook = functions.https.onRequest(async (request, response) => {
           break;
 
         case "expense":
-          await trackExpense({ telegramChatId, message, args, ledgerId });
+          await trackExpense({
+            telegramChatId,
+            message,
+            args,
+            ledgerId,
+            ledgerData,
+          });
           break;
 
         case "give":

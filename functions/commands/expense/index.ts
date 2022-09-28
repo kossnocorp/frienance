@@ -1,6 +1,6 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import { ExchangeRate, LedgerExpenseAction, ledgers } from "../../db";
+import { ExchangeRate, Ledger, LedgerExpenseAction, ledgers } from "../../db";
 import base64 from "../../_lib/base64";
 import { getExchangeRate } from "../../_lib/currency";
 import { formatValue } from "../../_lib/format";
@@ -11,11 +11,13 @@ export default async function trackExpense({
   message,
   args,
   ledgerId,
+  ledgerData,
 }: {
   telegramChatId: number;
   message: Message;
   args: string;
   ledgerId: string;
+  ledgerData: Ledger;
 }) {
   const { from } = message;
 
@@ -29,7 +31,8 @@ export default async function trackExpense({
 
     if (argsCaptures) {
       const [_, valueStr, currencyStr, comment] = argsCaptures;
-      const currency = currencyStr?.toUpperCase() || "USD";
+      const currency =
+        currencyStr?.toUpperCase() || ledgerData.currency || "USD";
       const val = parseFloat(valueStr);
 
       // TODO: Validate value
