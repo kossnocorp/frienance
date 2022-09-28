@@ -139,6 +139,7 @@ export const webhook = functions.https.onRequest(async (request, response) => {
             ledgerId,
             ledgerData,
           });
+          break;
 
         case "currency":
           await setCurrency({
@@ -147,6 +148,7 @@ export const webhook = functions.https.onRequest(async (request, response) => {
             args,
             ledgerId,
           });
+          break;
 
         default:
           console.debug(`Ignoring unknown command (${command})`);
