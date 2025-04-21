@@ -74,6 +74,17 @@ export default async function borrowMoney({
             });
           }
 
+          if (isNaN(exchangeRate.rate)) {
+            console.debug(
+              `Ignoring the borrow command as the exchange rate for ${currency} is not a number`
+            );
+            return sendMessage({
+              chatId: telegramChatId,
+              replyToId: message.message_id,
+              text: `Can't get exchange rate for ${currency}, please make sure that you use valid currency code`,
+            });
+          }
+
           const valueUSD = exchangeRate.rate * val;
 
           const action: LedgerBorrowAction = {
