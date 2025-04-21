@@ -1,6 +1,6 @@
-import * as functions from "firebase-functions";
-import fetch from "node-fetch";
+import * as functions from "firebase-functions/v1";
 import FormData from "form-data";
+import fetch from "node-fetch";
 
 const { token } = (functions.config().telegram || {}) as { token?: string };
 

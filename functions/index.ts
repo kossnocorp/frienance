@@ -1,7 +1,8 @@
 import * as admin from "firebase-admin";
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import { Update } from "telegram-typings";
 import { get, set } from "typesaurus";
+import base64 from "./_lib/base64";
 import calculateBalance from "./commands/balance";
 import borrowMoney from "./commands/borrow";
 import setCurrency from "./commands/currency";
@@ -13,7 +14,6 @@ import registerMember from "./commands/register";
 import reliefMember from "./commands/relief";
 import separateMembers from "./commands/separate";
 import { Ledger, LedgerActionType, ledgers } from "./db";
-import base64 from "./_lib/base64";
 
 admin.initializeApp();
 

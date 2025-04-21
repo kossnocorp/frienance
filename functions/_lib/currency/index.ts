@@ -1,6 +1,6 @@
+import * as functions from "firebase-functions/v1";
 import fetch from "node-fetch";
 import { ExchangeRate } from "../../db";
-import * as functions from "firebase-functions";
 
 const { key } = (functions.config().currency_converter || {}) as {
   key?: string;
