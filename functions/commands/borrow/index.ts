@@ -1,17 +1,11 @@
 import { Message } from "telegram-typings";
 import { field, update, value } from "typesaurus";
-import {
-  ExchangeRate,
-  Ledger,
-  LedgerBorrowAction,
-  LedgerGiveAction,
-  ledgers,
-} from "../../db";
 import base64 from "../../_lib/base64";
 import { getExchangeRate } from "../../_lib/currency";
 import { formatValue } from "../../_lib/format";
 import { findMemberByHandle } from "../../_lib/members";
 import { sendMessage } from "../../_lib/telegram";
+import { ExchangeRate, Ledger, LedgerBorrowAction, ledgers } from "../../db";
 
 export default async function borrowMoney({
   telegramChatId,
@@ -48,7 +42,16 @@ export default async function borrowMoney({
         handle,
       });
 
-      // TODO: Validate value
+      if (isNaN(val)) {
+        console.debug(
+          `Ignoring the borrow command as the value "${valueStr}" is not a number`
+        );
+        return sendMessage({
+          chatId: telegramChatId,
+          replyToId: message.message_id,
+          text: `Can't parse the value "${valueStr}", please make sure you format it correctly`,
+        });
+      }
 
       if (borrowingFromMemberEntry) {
         const [borrowingFromMemberId, borrowingFromMember] =
